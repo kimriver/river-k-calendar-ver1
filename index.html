@@ -1491,7 +1491,16 @@ async function renderCalView() {
     }
 
     cell.appendChild(wrap);
-    cell.onclick=()=>{currentDate=new Date(y,m,d);miniCalDate=new Date(currentDate);switchView('todo');loadTodos();};
+    cell.onclick=()=>{
+      currentDate=new Date(y,m,d);miniCalDate=new Date(currentDate);
+      const active=Object.keys(calLayers).filter(k=>calLayers[k]);
+      const t=active.length===1?active[0]:'dash';
+      if(t==='dash') switchView('dash');
+      else if(t==='todo'){switchView('todo');loadTodos();}
+      else if(t==='income'){txIncomeDate=new Date(y,m,d);switchView('income');}
+      else if(t==='expense'){txExpenseDate=new Date(y,m,d);switchView('expense');}
+      else if(t==='event'){evViewDate=new Date(y,m,d);switchView('event');}
+    };
     grid.appendChild(cell);
   }
 }
