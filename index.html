@@ -499,14 +499,12 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
 
       <!-- Event View -->
       <div class="view" id="view-event">
-        <div class="ev-header">
-          <div class="ev-header-top">
-            <div class="tx-title">🗓 일정</div>
-            <div class="tx-month-nav">
-              <button class="cal-nav" id="event-prev">‹</button>
-              <span class="tx-month-label" id="event-month-label"></span>
-              <button class="cal-nav" id="event-next">›</button>
-            </div>
+        <div style="padding:16px 22px 10px; border-bottom:1px solid var(--border); flex-shrink:0;">
+          <div style="font-family:'Space Mono',monospace; font-size:10px; color:var(--text3); letter-spacing:2px; text-transform:uppercase; margin-bottom:4px;">SCHEDULE</div>
+          <div style="font-size:22px; font-weight:700; color:var(--text); display:flex; align-items:center; gap:10px;">
+            <button class="date-nav" id="event-prev">‹</button>
+            <span id="event-month-label"></span>
+            <button class="date-nav" id="event-next">›</button>
           </div>
         </div>
         <div class="tx-cat-filter-bar" id="event-cat-filter-bar">
@@ -1451,15 +1449,20 @@ async function loadEvents(y, m) {
 }
 
 async function renderEvView() {
-  const y=evViewDate.getFullYear(), m=evViewDate.getMonth();
-  document.getElementById('event-month-label').textContent=`${y}년 ${m+1}월`;
+  const dayStr=ds(evViewDate);
+  const days=['일','월','화','수','목','금','토'];
+  document.getElementById('ev-date-label').textContent=dayStr===todayStr?"TODAY'S SCHEDULE":"SCHEDULE";
+  document.getElementById('event-date-display').textContent=fmtDate(evViewDate);
   await loadEvCats();
   renderEvCatFilter();
-  const list=await loadEvents(y,m);
+  // 해당 날짜를 포함하는 일정 조회
+  const {data}=await sb.from('events').select('*').eq('user_id',currentUser.id)
+    .lte('start_date',dayStr).gte('end_date',dayStr).order('start_date');
+  const list=data||[];
   const filtered=activeEvCatFilter===''?list:list.filter(e=>e.cat_id===activeEvCatFilter);
   const wrap=document.getElementById('event-list');
   if(!filtered.length){
-    wrap.innerHTML=`<div class="tx-empty"><div class="emoji">🗓</div><p>일정을 추가해보세요!</p></div>`;
+    wrap.innerHTML=`<div class="tx-empty"><div class="emoji">🗓</div><p>${activeEvCatFilter?'이 카테고리에 일정이 없어요':'이 날의 일정이 없어요!'}</p></div>`;
     return;
   }
   wrap.innerHTML='';
@@ -1509,8 +1512,8 @@ function openAddEventModal() {
   const titleInput=document.getElementById('event-title-input');
   editingEvId=null; selectedEvModalCat='';
   document.getElementById('ev-modal-title-input').value=titleInput.value.trim();
-  document.getElementById('ev-modal-start-input').value=ds(new Date());
-  document.getElementById('ev-modal-end-input').value=ds(new Date());
+  document.getElementById('ev-modal-start-input').value=ds(evViewDate);
+  document.getElementById('ev-modal-end-input').value=ds(evViewDate);
   document.getElementById('ev-modal-memo-input').value='';
   renderEvModalCats();
   document.getElementById('ev-modal-overlay').classList.add('open');
@@ -1607,8 +1610,8 @@ async function saveEvCats() {
   toast('✅ 카테고리 저장됐어요');
 }
 
-document.getElementById('event-prev').onclick=()=>{evViewDate.setMonth(evViewDate.getMonth()-1);renderEvView();};
-document.getElementById('event-next').onclick=()=>{evViewDate.setMonth(evViewDate.getMonth()+1);renderEvView();};
+document.getElementById('event-prev').onclick=()=>{evViewDate.setDate(evViewDate.getDate()-1);renderEvView();};
+document.getElementById('event-next').onclick=()=>{evViewDate.setDate(evViewDate.getDate()+1);renderEvView();};
 document.getElementById('event-title-input').addEventListener('keydown',e=>{if(e.key==='Enter')openAddEventModal();});
 
 async function loadTxCats(type) {
