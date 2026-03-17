@@ -1,0 +1,1120 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0a0a0f">
+<title>Daily Todo</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.38.4"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap');
+
+:root {
+  --bg:#0a0a0f; --bg2:#12121a; --bg3:#1a1a25; --bg4:#22222f;
+  --border:#2a2a3a; --accent:#7c6af7; --accent2:#a78bfa;
+  --accent-dim:rgba(124,106,247,0.12);
+  --text:#e8e8f0; --text2:#8888a8; --text3:#4a4a6a;
+  --red:#f87171; --yellow:#fbbf24; --green:#4ade80;
+  --radius:10px; --shadow:0 8px 32px rgba(0,0,0,0.5);
+}
+* { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+html,body { height:100%; overflow:hidden; }
+body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--text); display:flex; flex-direction:column; }
+
+/* ── 로딩 화면 ── */
+#loading-screen {
+  position:fixed; inset:0; background:var(--bg);
+  display:flex; align-items:center; justify-content:center;
+  z-index:2000;
+}
+#loading-screen.hidden { display:none; }
+#loading-box { text-align:center; }
+#loading-logo { font-family:'Space Mono',monospace; font-size:22px; font-weight:700; color:var(--accent2); letter-spacing:4px; margin-bottom:28px; }
+#loading-spinner {
+  width:32px; height:32px; border-radius:50%;
+  border:3px solid var(--border);
+  border-top-color:var(--accent);
+  animation:spin 0.8s linear infinite;
+  margin:0 auto;
+}
+@keyframes spin { to { transform:rotate(360deg); } }
+
+/* ── 로그인 화면 ── */
+#login-screen {
+  position:fixed; inset:0; background:var(--bg);
+  display:flex; align-items:center; justify-content:center;
+  z-index:1000; padding:20px;
+}
+#login-screen.hidden { display:none; }
+.login-box {
+  width:100%; max-width:400px;
+  background:var(--bg2); border:1px solid var(--border);
+  border-radius:20px; padding:40px 32px;
+  box-shadow:var(--shadow);
+  animation:fadeUp 0.4s ease;
+}
+@keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+.login-logo { font-family:'Space Mono',monospace; font-size:11px; color:var(--text3); letter-spacing:3px; text-transform:uppercase; margin-bottom:28px; }
+.login-title { font-size:26px; font-weight:700; color:var(--text); margin-bottom:6px; }
+.login-sub { font-size:13px; color:var(--text2); margin-bottom:32px; line-height:1.6; }
+.login-tabs { display:flex; gap:0; margin-bottom:24px; background:var(--bg3); border-radius:8px; padding:3px; }
+.login-tab { flex:1; padding:8px; border:none; background:none; color:var(--text2); font-family:'Noto Sans KR',sans-serif; font-size:13px; cursor:pointer; border-radius:6px; transition:all 0.2s; }
+.login-tab.active { background:var(--accent); color:#fff; }
+.login-field { margin-bottom:14px; }
+.login-field label { display:block; font-size:11px; color:var(--text3); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; font-family:'Space Mono',monospace; }
+.login-input { width:100%; background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:12px 14px; color:var(--text); font-family:'Noto Sans KR',sans-serif; font-size:14px; outline:none; transition:border-color 0.2s; }
+.login-input:focus { border-color:var(--accent); }
+.login-input::placeholder { color:var(--text3); }
+.login-btn { width:100%; background:var(--accent); border:none; border-radius:10px; color:#fff; padding:14px; font-family:'Noto Sans KR',sans-serif; font-size:15px; font-weight:600; cursor:pointer; transition:all 0.2s; margin-top:6px; }
+.login-btn:hover { background:var(--accent2); transform:translateY(-1px); }
+.login-btn:active { transform:translateY(0); }
+.login-msg { font-size:12px; margin-top:12px; text-align:center; min-height:18px; }
+.login-msg.error { color:var(--red); }
+.login-msg.success { color:var(--green); }
+
+/* ── 앱 전체 ── */
+#app-screen { display:flex; flex-direction:column; height:100%; }
+#app-screen.hidden { display:none; }
+
+/* Header */
+#header {
+  height:52px; flex-shrink:0;
+  background:var(--bg2); border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0 16px; gap:10px;
+}
+#header-left { display:flex; align-items:center; gap:10px; }
+#mobile-menu-btn { display:none; background:none; border:none; color:var(--text2); font-size:20px; cursor:pointer; padding:4px; }
+#header-title { font-family:'Space Mono',monospace; font-size:12px; color:var(--text2); letter-spacing:2px; text-transform:uppercase; }
+#sync-dot { width:7px; height:7px; border-radius:50%; background:var(--text3); transition:background 0.3s; }
+#sync-dot.syncing { background:var(--yellow); animation:pulse 1s infinite; }
+#sync-dot.ok { background:var(--green); }
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.3} }
+#header-right { display:flex; align-items:center; gap:8px; }
+.hnav-btn { padding:5px 12px; border-radius:20px; border:1px solid var(--border); background:none; color:var(--text2); font-family:'Noto Sans KR',sans-serif; font-size:12px; cursor:pointer; transition:all 0.15s; white-space:nowrap; }
+.hnav-btn.active { background:var(--accent-dim); color:var(--accent2); border-color:var(--accent); }
+#logout-btn { background:none; border:1px solid var(--border); border-radius:20px; color:var(--text3); font-size:11px; padding:5px 10px; cursor:pointer; font-family:'Noto Sans KR',sans-serif; transition:all 0.15s; white-space:nowrap; }
+#logout-btn:hover { border-color:var(--red); color:var(--red); }
+
+/* Layout */
+#layout { display:flex; flex:1; overflow:hidden; }
+
+/* Sidebar */
+#sidebar {
+  width:210px; flex-shrink:0;
+  background:var(--bg2); border-right:1px solid var(--border);
+  display:flex; flex-direction:column; transition:transform 0.3s;
+}
+#mini-cal { padding:14px 12px; }
+.mini-cal-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; }
+.mini-cal-month { font-family:'Space Mono',monospace; font-size:10px; color:var(--text2); letter-spacing:1px; }
+.mini-nav { background:none; border:none; color:var(--text3); cursor:pointer; font-size:14px; padding:2px 6px; border-radius:4px; transition:all 0.15s; }
+.mini-nav:hover { color:var(--accent2); background:var(--accent-dim); }
+.mini-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:1px; }
+.mini-dow { text-align:center; font-size:9px; color:var(--text3); padding:3px 0; font-family:'Space Mono',monospace; }
+.mini-day { text-align:center; font-size:11px; padding:4px 2px; border-radius:4px; cursor:pointer; color:var(--text2); transition:all 0.15s; }
+.mini-day:hover { background:var(--bg4); color:var(--text); }
+.mini-day.today { color:var(--accent2); font-weight:700; }
+.mini-day.selected { background:var(--accent); color:#fff; }
+.mini-day.has-todos::after { content:''; display:block; width:3px; height:3px; background:var(--accent2); border-radius:50%; margin:1px auto 0; }
+.mini-day.selected.has-todos::after { background:rgba(255,255,255,0.7); }
+.mini-day.other-month { color:var(--text3); }
+#sidebar-nav { margin-top:auto; padding:10px; border-top:1px solid var(--border); display:flex; flex-direction:column; gap:3px; }
+.snav-btn { display:flex; align-items:center; gap:8px; padding:8px 10px; border-radius:8px; border:none; background:none; color:var(--text2); cursor:pointer; font-family:'Noto Sans KR',sans-serif; font-size:13px; transition:all 0.15s; }
+.snav-btn:hover { background:var(--bg4); color:var(--text); }
+.snav-btn.active { background:var(--accent-dim); color:var(--accent2); }
+
+/* Main */
+#main { flex:1; display:flex; flex-direction:column; overflow:hidden; min-width:0; }
+.view { display:none; flex:1; flex-direction:column; overflow:hidden; height:100%; }
+.view.active { display:flex; }
+
+/* Todo header */
+#todo-header { padding:16px 22px 10px; border-bottom:1px solid var(--border); flex-shrink:0; }
+#todo-date-label { font-family:'Space Mono',monospace; font-size:10px; color:var(--text3); letter-spacing:2px; text-transform:uppercase; margin-bottom:4px; }
+#todo-date-big { font-size:22px; font-weight:700; color:var(--text); display:flex; align-items:center; gap:10px; }
+.date-nav { background:none; border:1px solid var(--border); color:var(--text2); width:26px; height:26px; border-radius:6px; cursor:pointer; font-size:13px; transition:all 0.15s; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.date-nav:hover { border-color:var(--accent); color:var(--accent2); }
+#todo-stats { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; align-items:center; }
+.stat-pill { font-size:11px; color:var(--text3); background:var(--bg3); padding:2px 10px; border-radius:20px; border:1px solid var(--border); }
+.stat-pill span { color:var(--accent2); font-weight:600; }
+#undo-btn { display:none; align-items:center; gap:5px; padding:2px 10px; border-radius:20px; border:1px solid var(--yellow); background:rgba(251,191,36,0.08); color:var(--yellow); font-size:11px; cursor:pointer; font-family:'Noto Sans KR',sans-serif; transition:all 0.2s; }
+#undo-btn.visible { display:flex; }
+#undo-btn:hover { background:rgba(251,191,36,0.18); }
+#carry-btn { display:none; align-items:center; gap:5px; padding:2px 10px; border-radius:20px; border:1px solid var(--accent); background:var(--accent-dim); color:var(--accent2); font-size:11px; cursor:pointer; font-family:'Noto Sans KR',sans-serif; transition:all 0.2s; white-space:nowrap; }
+#carry-btn.visible { display:flex; }
+#carry-btn:hover { background:rgba(124,106,247,0.25); }
+
+/* Cat filter */
+#cat-filter-bar { display:flex; gap:5px; padding:8px 22px; border-bottom:1px solid var(--border); flex-shrink:0; overflow-x:auto; align-items:center; }
+#cat-filter-bar::-webkit-scrollbar { display:none; }
+.cat-filter-chip { padding:4px 12px; border-radius:20px; font-size:12px; cursor:pointer; border:1px solid var(--border); background:var(--bg3); color:var(--text2); white-space:nowrap; transition:all 0.15s; font-family:'Noto Sans KR',sans-serif; }
+.cat-filter-chip.active { color:#fff; }
+.cat-manage-btn { padding:4px 10px; border-radius:20px; font-size:12px; cursor:pointer; border:1px dashed var(--border); background:transparent; color:var(--text3); white-space:nowrap; transition:all 0.15s; font-family:'Noto Sans KR',sans-serif; margin-left:4px; flex-shrink:0; }
+.cat-manage-btn:hover { border-color:var(--accent); color:var(--accent2); }
+
+/* Todo list */
+#todo-list-wrap { flex:1; overflow-y:auto; padding:12px 22px; -webkit-overflow-scrolling:touch; }
+#todo-list-wrap::-webkit-scrollbar { width:3px; }
+#todo-list-wrap::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+
+.todo-item {
+  display:flex; align-items:center; gap:10px;
+  padding:11px 13px; margin-bottom:6px;
+  background:var(--bg2); border:1px solid var(--border);
+  border-left-width:3px; border-radius:var(--radius);
+  transition:all 0.2s; user-select:none; cursor:grab;
+}
+.todo-item:hover { background:var(--bg3); }
+.todo-item.done { opacity:0.72; }
+.todo-item.dragging { opacity:0.3; cursor:grabbing; }
+.todo-item.drag-over { border-color:var(--accent2); border-style:dashed; }
+.drag-handle { color:var(--text3); font-size:14px; flex-shrink:0; cursor:grab; }
+.todo-checkbox { width:20px; height:20px; border:2px solid var(--border); border-radius:5px; flex-shrink:0; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:all 0.2s; }
+.todo-checkbox:hover { border-color:var(--accent); }
+.todo-checkbox.checked { background:var(--accent); border-color:var(--accent); }
+.todo-checkbox.checked::after { content:'✓'; color:white; font-size:11px; font-weight:700; }
+.todo-inline-cat { display:inline-flex; align-items:center; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:600; color:#fff; flex-shrink:0; white-space:nowrap; max-width:80px; overflow:hidden; text-overflow:ellipsis; }
+.todo-content { flex:1; min-width:0; }
+.todo-title { font-size:14px; font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; cursor:pointer; transition:color 0.2s; }
+.todo-title:hover { color:var(--accent2); }
+.todo-item.done .todo-title { text-decoration:line-through; color:var(--text3); }
+.todo-meta { display:flex; gap:6px; margin-top:2px; align-items:center; }
+.todo-deadline { font-size:11px; color:var(--text3); }
+.todo-deadline.urgent { color:var(--red); }
+.todo-deadline.soon { color:var(--yellow); }
+.todo-body-preview { font-size:11px; color:var(--text3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:200px; }
+.todo-actions { display:flex; gap:2px; flex-shrink:0; }
+.action-btn { background:none; border:none; color:var(--text3); cursor:pointer; padding:5px; border-radius:5px; font-size:13px; transition:all 0.15s; }
+.action-btn:hover { background:var(--bg4); color:var(--text); }
+.action-btn.del:hover { color:var(--red); }
+
+/* Add bar */
+#add-todo-bar { padding:10px 22px; border-top:1px solid var(--border); display:flex; gap:8px; flex-shrink:0; }
+#new-todo-input { flex:1; background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); padding:10px 14px; color:var(--text); font-family:'Noto Sans KR',sans-serif; font-size:14px; outline:none; transition:border-color 0.2s; min-width:0; }
+#new-todo-input:focus { border-color:var(--accent); }
+#new-todo-input::placeholder { color:var(--text3); }
+#add-btn { background:var(--accent); border:none; border-radius:var(--radius); color:white; padding:10px 16px; cursor:pointer; font-family:'Noto Sans KR',sans-serif; font-size:14px; font-weight:500; transition:all 0.2s; white-space:nowrap; flex-shrink:0; }
+#add-btn:hover { background:var(--accent2); }
+
+/* Calendar */
+#view-cal { overflow-y: auto; }
+#cal-view { padding:16px 22px 20px; display:flex; flex-direction:column; min-height:100%; }
+#cal-header { display:flex; align-items:center; gap:12px; margin-bottom:12px; flex-shrink:0; }
+#cal-month-label { font-family:'Space Mono',monospace; font-size:18px; font-weight:700; color:var(--text); flex:1; }
+.cal-nav { background:var(--bg3); border:1px solid var(--border); color:var(--text2); width:32px; height:32px; border-radius:7px; cursor:pointer; font-size:15px; transition:all 0.15s; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+.cal-nav:hover { border-color:var(--accent); color:var(--accent2); }
+#cal-grid-wrap { display:flex; flex-direction:column; }
+#cal-dow-row { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; margin-bottom:3px; }
+.cal-dow { text-align:center; font-family:'Space Mono',monospace; font-size:9px; color:var(--text3); padding:5px 0; }
+#cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; }
+.cal-cell { background:var(--bg2); border:1px solid var(--border); border-radius:7px; padding:6px; cursor:pointer; transition:all 0.15s; overflow:hidden; display:flex; flex-direction:column; min-height:80px; }
+.cal-cell:hover { border-color:var(--accent); }
+.cal-cell.today { border-color:var(--accent); }
+.cal-cell.other-month { opacity:0.25; pointer-events:none; }
+.cal-cell.selected { background:var(--accent-dim); border-color:var(--accent2); }
+.cal-num { font-family:'Space Mono',monospace; font-size:11px; color:var(--text2); margin-bottom:3px; flex-shrink:0; }
+.cal-cell.today .cal-num { color:var(--accent2); font-weight:700; }
+.cal-todos { flex:1; overflow:hidden; display:flex; flex-direction:column; gap:2px; }
+.cal-chip { font-size:9px; padding:1px 5px; border-radius:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; background:var(--bg4); color:var(--text2); border-left:2px solid var(--accent); }
+.cal-chip.done { opacity:0.4; text-decoration:line-through; }
+.cal-more { font-size:9px; color:var(--text3); }
+
+/* Mobile sidebar */
+#sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:50; }
+#sidebar-overlay.open { display:block; }
+@media(max-width:680px) {
+  #mobile-menu-btn { display:block; }
+  #sidebar { position:fixed; top:52px; left:0; bottom:0; z-index:60; transform:translateX(-100%); }
+  #sidebar.open { transform:translateX(0); box-shadow:var(--shadow); }
+  .drag-handle { display:none; }
+  .todo-actions { opacity:1 !important; }
+}
+
+/* Modals */
+.overlay { position:fixed; inset:0; background:rgba(0,0,0,0.65); backdrop-filter:blur(6px); z-index:100; display:none; align-items:flex-end; justify-content:center; }
+.overlay.open { display:flex; }
+@media(min-width:601px) { .overlay { align-items:center; padding:20px; } }
+@keyframes slideUp { from{transform:translateY(30px);opacity:0} to{transform:translateY(0);opacity:1} }
+@keyframes scaleIn { from{opacity:0;transform:scale(0.96)} to{opacity:1;transform:scale(1)} }
+.modal-sheet { background:var(--bg2); border:1px solid var(--border); border-radius:16px 16px 0 0; width:100%; max-height:88vh; display:flex; flex-direction:column; box-shadow:var(--shadow); overflow:hidden; animation:slideUp 0.25s ease; }
+@media(min-width:601px) { .modal-sheet { border-radius:14px; width:540px; max-height:80vh; animation:scaleIn 0.2s ease; } }
+.modal-handle { width:36px; height:4px; background:var(--border); border-radius:2px; margin:10px auto 0; flex-shrink:0; }
+@media(min-width:601px) { .modal-handle { display:none; } }
+.modal-hd { display:flex; align-items:center; gap:12px; padding:16px 20px; border-bottom:1px solid var(--border); flex-shrink:0; }
+.modal-hd-title { font-size:15px; font-weight:600; color:var(--text); flex:1; }
+.modal-x { background:none; border:none; color:var(--text3); cursor:pointer; font-size:18px; padding:4px; border-radius:6px; transition:all 0.15s; line-height:1; }
+.modal-x:hover { background:var(--bg4); color:var(--text); }
+.modal-bd { padding:16px 20px; display:flex; flex-direction:column; gap:14px; flex:1; overflow-y:auto; -webkit-overflow-scrolling:touch; }
+.modal-field label { display:block; font-size:10px; color:var(--text3); text-transform:uppercase; letter-spacing:1px; margin-bottom:6px; font-family:'Space Mono',monospace; }
+.m-title-input { width:100%; background:transparent; border:none; color:var(--text); font-family:'Noto Sans KR',sans-serif; font-size:17px; font-weight:600; outline:none; }
+.m-title-input::placeholder { color:var(--text3); }
+.m-textarea { width:100%; background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:11px; color:var(--text); font-family:'Noto Sans KR',sans-serif; font-size:14px; line-height:1.7; outline:none; resize:vertical; min-height:90px; transition:border-color 0.2s; }
+.m-textarea:focus { border-color:var(--accent); }
+.m-date { background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:10px 12px; color:var(--text); font-family:'Space Mono',monospace; font-size:13px; outline:none; width:100%; max-width:200px; color-scheme:dark; transition:border-color 0.2s; }
+.m-date:focus { border-color:var(--accent); }
+#modal-cat-list { display:flex; flex-wrap:wrap; gap:6px; }
+.m-cat-chip { padding:5px 13px; border-radius:20px; font-size:12px; cursor:pointer; border:2px solid transparent; color:#fff; transition:all 0.15s; opacity:0.45; font-family:'Noto Sans KR',sans-serif; }
+.m-cat-chip.selected { opacity:1; border-color:rgba(255,255,255,0.5); }
+.m-cat-none { padding:5px 13px; border-radius:20px; font-size:12px; cursor:pointer; border:1px solid var(--border); color:var(--text2); background:var(--bg3); transition:all 0.15s; font-family:'Noto Sans KR',sans-serif; }
+.m-cat-none.selected { border-color:var(--accent); color:var(--accent2); background:var(--accent-dim); }
+.modal-ft { padding:12px 20px; border-top:1px solid var(--border); display:flex; justify-content:flex-end; gap:8px; flex-shrink:0; }
+.mbtn { padding:10px 20px; border-radius:8px; border:none; cursor:pointer; font-family:'Noto Sans KR',sans-serif; font-size:13px; font-weight:500; transition:all 0.15s; }
+.mbtn.sec { background:var(--bg4); color:var(--text2); }
+.mbtn.sec:hover { background:var(--bg3); color:var(--text); }
+.mbtn.pri { background:var(--accent); color:white; }
+.mbtn.pri:hover { background:var(--accent2); }
+
+/* Cat manage */
+.cat-row { display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--bg3); border:1px solid var(--border); border-radius:8px; }
+.cat-dot { width:22px; height:22px; border-radius:50%; flex-shrink:0; cursor:pointer; border:2px solid rgba(255,255,255,0.15); transition:transform 0.15s; }
+.cat-dot:hover { transform:scale(1.2); }
+.cat-name-inp { flex:1; background:transparent; border:none; color:var(--text); font-family:'Noto Sans KR',sans-serif; font-size:13px; outline:none; min-width:0; }
+.cat-name-inp::placeholder { color:var(--text3); }
+.cat-del { background:none; border:none; color:var(--text3); cursor:pointer; font-size:14px; padding:4px 6px; border-radius:5px; transition:all 0.15s; }
+.cat-del:hover { color:var(--red); }
+#cat-add-row { display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px dashed var(--border); border-radius:8px; cursor:pointer; transition:all 0.15s; margin-top:4px; color:var(--text3); font-size:13px; }
+#cat-add-row:hover { border-color:var(--accent); color:var(--accent2); background:var(--accent-dim); }
+
+/* Color picker */
+#cpicker { position:fixed; z-index:400; background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:13px; box-shadow:var(--shadow); display:none; min-width:185px; }
+#cpicker.open { display:block; }
+#cpicker h4 { font-size:10px; color:var(--text3); text-transform:uppercase; letter-spacing:1px; margin-bottom:9px; font-family:'Space Mono',monospace; }
+#cp-swatches { display:grid; grid-template-columns:repeat(5,1fr); gap:5px; margin-bottom:9px; }
+.cp-sw { width:26px; height:26px; border-radius:6px; cursor:pointer; border:2px solid transparent; transition:all 0.15s; }
+.cp-sw:hover { transform:scale(1.15); border-color:rgba(255,255,255,0.3); }
+.cp-sw.selected { border-color:#fff; }
+#cp-custom { display:flex; align-items:center; gap:7px; padding-top:8px; border-top:1px solid var(--border); }
+#cp-custom label { font-size:10px; color:var(--text3); white-space:nowrap; }
+#cp-inp { flex:1; background:var(--bg3); border:1px solid var(--border); border-radius:5px; padding:4px 7px; color:var(--text); font-family:'Space Mono',monospace; font-size:11px; outline:none; min-width:0; }
+#cp-inp:focus { border-color:var(--accent); }
+#cp-prev { width:22px; height:22px; border-radius:5px; border:1px solid var(--border); flex-shrink:0; }
+
+/* Toast */
+#toast { position:fixed; bottom:20px; left:50%; transform:translateX(-50%) translateY(16px); background:var(--bg3); border:1px solid var(--border); border-radius:10px; padding:9px 16px; font-size:13px; color:var(--text2); box-shadow:var(--shadow); opacity:0; transition:all 0.3s; z-index:600; pointer-events:none; white-space:nowrap; }
+#toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+.empty-state { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:50px 20px; color:var(--text3); gap:10px; }
+.empty-state .emoji { font-size:36px; }
+.empty-state p { font-size:13px; }
+</style>
+</head>
+<body>
+
+<!-- 로딩 화면 -->
+<div id="loading-screen">
+  <div id="loading-box">
+    <div id="loading-logo">River.K</div>
+    <div id="loading-spinner"></div>
+  </div>
+</div>
+
+<!-- 로그인 화면 -->
+<div id="login-screen">
+  <div class="login-box">
+    <div class="login-logo">✦ Daily Todo</div>
+    <div class="login-title">안녕하세요 👋</div>
+    <div class="login-sub">로그인하고 어디서든 할 일을 관리하세요</div>
+    <div class="login-tabs">
+      <button class="login-tab active" id="tab-login" onclick="setTab('login')">로그인</button>
+      <button class="login-tab" id="tab-signup" onclick="setTab('signup')">회원가입</button>
+    </div>
+    <div class="login-field">
+      <label>이메일</label>
+      <input class="login-input" type="email" id="login-email" placeholder="email@example.com">
+    </div>
+    <div class="login-field">
+      <label>비밀번호</label>
+      <input class="login-input" type="password" id="login-pw" placeholder="비밀번호 입력">
+    </div>
+    <button class="login-btn" id="login-submit-btn" onclick="submitAuth()">로그인</button>
+    <div class="login-msg" id="login-msg"></div>
+  </div>
+</div>
+
+<!-- 앱 화면 -->
+<div id="app-screen" class="hidden">
+  <div id="header">
+    <div id="header-left">
+      <button id="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
+      <div id="header-title">DAILY TODO</div>
+      <div id="sync-dot"></div>
+    </div>
+    <div id="header-right">
+      <button class="hnav-btn active" id="hnav-todo" onclick="switchView('todo')">📋 목록</button>
+      <button class="hnav-btn" id="hnav-cal" onclick="switchView('cal')">📅 달력</button>
+      <button id="logout-btn" onclick="logout()">로그아웃</button>
+    </div>
+  </div>
+
+  <div id="layout">
+    <div id="sidebar-overlay" onclick="closeSidebar()"></div>
+    <div id="sidebar">
+      <div id="mini-cal">
+        <div class="mini-cal-header">
+          <button class="mini-nav" id="mini-prev">‹</button>
+          <span class="mini-cal-month" id="mini-month-label"></span>
+          <button class="mini-nav" id="mini-next">›</button>
+        </div>
+        <div class="mini-grid" id="mini-grid"></div>
+      </div>
+      <div id="sidebar-nav">
+        <button class="snav-btn active" id="snav-todo" onclick="switchView('todo');closeSidebar()">📋 할 일 목록</button>
+        <button class="snav-btn" id="snav-cal" onclick="switchView('cal');closeSidebar()">📅 월간 달력</button>
+      </div>
+    </div>
+
+    <div id="main">
+      <!-- Todo View -->
+      <div class="view active" id="view-todo">
+        <div id="todo-header">
+          <div id="todo-date-label">TODAY'S TASKS</div>
+          <div id="todo-date-big">
+            <button class="date-nav" id="prev-day">‹</button>
+            <span id="date-display"></span>
+            <button class="date-nav" id="next-day">›</button>
+          </div>
+          <div id="todo-stats">
+            <div class="stat-pill">전체 <span id="stat-total">0</span></div>
+            <div class="stat-pill">완료 <span id="stat-done">0</span></div>
+            <div class="stat-pill">남은 <span id="stat-remain">0</span></div>
+            <button id="undo-btn" onclick="undo()">↩ 되돌리기 <span id="undo-count"></span></button>
+            <button id="carry-btn" onclick="carryForward()" title="미완료 항목을 다음날로 이월">⏭ 미완료 이월</button>
+          </div>
+        </div>
+        <div id="cat-filter-bar">
+          <button class="cat-manage-btn" onclick="openCatModal()">⚙ 카테고리</button>
+        </div>
+        <div id="todo-list-wrap"><div id="todo-list"></div></div>
+        <div id="add-todo-bar">
+          <input type="text" id="new-todo-input" placeholder="새 할 일 입력... (Enter)" maxlength="100">
+          <button id="add-btn" onclick="addTodo()">추가</button>
+        </div>
+      </div>
+
+      <!-- Calendar View -->
+      <div class="view" id="view-cal">
+        <div id="cal-view">
+          <div id="cal-header">
+            <button class="cal-nav" id="cal-prev">‹</button>
+            <div id="cal-month-label"></div>
+            <button class="cal-nav" id="cal-next">›</button>
+          </div>
+          <div id="cal-grid-wrap">
+            <div id="cal-dow-row">
+              <div class="cal-dow">일</div><div class="cal-dow">월</div><div class="cal-dow">화</div>
+              <div class="cal-dow">수</div><div class="cal-dow">목</div><div class="cal-dow">금</div><div class="cal-dow">토</div>
+            </div>
+            <div id="cal-grid"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Detail Modal -->
+<div class="overlay" id="modal-overlay" onclick="handleOC(event,'modal-overlay',closeModal)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-hd">
+      <input class="m-title-input" id="modal-title-input" placeholder="제목을 입력하세요">
+      <button class="modal-x" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-bd">
+      <div class="modal-field"><label>카테고리</label><div id="modal-cat-list"></div></div>
+      <div class="modal-field"><label>본문 내용</label><textarea class="m-textarea" id="modal-body-input" placeholder="상세 내용..."></textarea></div>
+      <div class="modal-field"><label>마감일</label><input class="m-date" type="date" id="modal-deadline-input"></div>
+    </div>
+    <div class="modal-ft">
+      <button class="mbtn sec" onclick="closeModal()">취소</button>
+      <button class="mbtn pri" onclick="saveModal()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Category Modal -->
+<div class="overlay" id="cat-modal-overlay" onclick="handleOC(event,'cat-modal-overlay',closeCatModal)">
+  <div class="modal-sheet" style="max-width:440px">
+    <div class="modal-handle"></div>
+    <div class="modal-hd">
+      <div class="modal-hd-title">🏷 카테고리 관리</div>
+      <button class="modal-x" onclick="closeCatModal()">✕</button>
+    </div>
+    <div class="modal-bd">
+      <div id="cat-list-editor"></div>
+      <div id="cat-add-row" onclick="addCatRow()"><span>＋</span> 새 카테고리 추가</div>
+    </div>
+    <div class="modal-ft">
+      <button class="mbtn sec" onclick="closeCatModal()">취소</button>
+      <button class="mbtn pri" onclick="saveCats()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Move Modal -->
+<div class="overlay" id="move-modal-overlay" onclick="handleOC(event,'move-modal-overlay',closeMoveModal)">
+  <div class="modal-sheet" style="max-width:380px">
+    <div class="modal-handle"></div>
+    <div class="modal-hd">
+      <div class="modal-hd-title">📅 날짜 이동</div>
+      <button class="modal-x" onclick="closeMoveModal()">✕</button>
+    </div>
+    <div class="modal-bd">
+      <div class="modal-field">
+        <label>이동할 날짜 선택</label>
+        <input class="m-date" type="date" id="move-date-input" style="max-width:100%">
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:4px">
+        <button class="mbtn sec" style="font-size:12px;padding:7px 12px" onclick="setMoveDate(1)">내일로</button>
+        <button class="mbtn sec" style="font-size:12px;padding:7px 12px" onclick="setMoveDate(2)">모레로</button>
+        <button class="mbtn sec" style="font-size:12px;padding:7px 12px" onclick="setMoveDate(7)">일주일 후로</button>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="mbtn sec" onclick="closeMoveModal()">취소</button>
+      <button class="mbtn pri" onclick="confirmMove()">이동</button>
+    </div>
+  </div>
+</div>
+
+<!-- Color Picker -->
+<div id="cpicker">
+  <h4>색상 선택</h4>
+  <div id="cp-swatches"></div>
+  <div id="cp-custom">
+    <label>직접입력</label>
+    <input type="text" id="cp-inp" placeholder="#ff6b6b" maxlength="7">
+    <div id="cp-prev"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ══════════════════════════════════════
+//  설정 — 여기에 본인 키를 입력하세요
+// ══════════════════════════════════════
+const SUPABASE_URL = 'https://koabxnqimggnofzfatsc.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtvYWJ4bnFpbWdnbm9memZhdHNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3MDU3OTcsImV4cCI6MjA4OTI4MTc5N30.KT2CarRDIEHbxFZgej1TAF_eVWMWGu-T-mhZVnyKcZk';
+// ══════════════════════════════════════
+
+// ── Web Locks API 비활성화 (Supabase 잠금 문제 방지) ──
+try {
+  // Web Locks API를 완전히 우회
+  if (navigator.locks) {
+    Object.defineProperty(navigator, 'locks', {
+      value: {
+        request: (name, optionsOrFn, fn) => {
+          const cb = fn || optionsOrFn;
+          return Promise.resolve().then(() => cb({ name }));
+        },
+        query: () => Promise.resolve({ held: [], pending: [] })
+      },
+      writable: false, configurable: false
+    });
+  }
+} catch(e) {}
+
+// ── localStorage 잠금 키 청소 ──
+try {
+  Object.keys(localStorage).forEach(key => {
+    if(key.includes('lock')) localStorage.removeItem(key);
+  });
+} catch(e) {}
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+  auth: {
+    storageKey: 'dailytodo-auth',
+    autoRefreshToken: true,
+    persistSession: true,
+    detectSessionInUrl: false
+  }
+});
+
+// ── State ──
+let currentDate = new Date();
+let todos = [];
+let categories = [];
+let editingCats = [];
+let editingId = null;
+let selectedModalCat = '';
+let activeCatFilter = '';
+let miniCalDate = new Date();
+let calViewDate = new Date();
+let monthData = {};
+let dragSrcIdx = null;
+let cpTarget = null;
+let undoStack = [];
+const UNDO_LIMIT = 5;
+const todayStr = ds(new Date());
+let currentUser = null;
+
+const COLORS = [
+  '#f87171','#fb923c','#fbbf24','#a3e635','#4ade80',
+  '#34d399','#22d3ee','#60a5fa','#818cf8','#a78bfa',
+  '#e879f9','#f472b6','#94a3b8','#f97316','#06b6d4',
+  '#6366f1','#ec4899','#84cc16','#2dd4bf','#64748b'
+];
+
+// ── Utils ──
+function ds(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
+function fmtDate(d) { const days=['일','월','화','수','목','금','토']; return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${days[d.getDay()]})`; }
+function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2); }
+function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function gc(id) { return categories.find(c=>c.id===id)||null; }
+function dc(v) { return JSON.parse(JSON.stringify(v)); }
+function isMob() { return window.innerWidth<=680; }
+
+function dlStatus(dl) {
+  if(!dl) return null;
+  const t=new Date(); t.setHours(0,0,0,0);
+  const d=new Date(dl); d.setHours(0,0,0,0);
+  const diff=Math.ceil((d-t)/86400000);
+  if(diff<0) return {label:`${Math.abs(diff)}일 초과`,cls:'urgent'};
+  if(diff===0) return {label:'오늘 마감',cls:'urgent'};
+  if(diff<=3) return {label:`D-${diff}`,cls:'soon'};
+  return {label:`D-${diff}`,cls:''};
+}
+
+function sync(s) {
+  const dot=document.getElementById('sync-dot');
+  dot.className = s==='syncing'?'syncing':s==='ok'?'ok':'';
+  if(s==='ok') setTimeout(()=>{if(dot.className==='ok')dot.className='';},1500);
+}
+
+let toastT=null;
+function toast(msg) {
+  const t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  clearTimeout(toastT); toastT=setTimeout(()=>t.classList.remove('show'),2500);
+}
+
+function handleOC(e,id,fn) { if(e.target.id===id) fn(); }
+
+// ── Auth ──
+let authTab = 'login';
+function setTab(t) {
+  authTab=t;
+  document.getElementById('tab-login').classList.toggle('active',t==='login');
+  document.getElementById('tab-signup').classList.toggle('active',t==='signup');
+  document.getElementById('login-submit-btn').textContent = t==='login'?'로그인':'회원가입';
+  document.getElementById('login-msg').textContent='';
+}
+
+async function submitAuth() {
+  const email=document.getElementById('login-email').value.trim();
+  const pw=document.getElementById('login-pw').value;
+  const msg=document.getElementById('login-msg');
+  if(!email||!pw) { msg.className='login-msg error'; msg.textContent='이메일과 비밀번호를 입력해주세요.'; return; }
+  msg.className='login-msg'; msg.textContent='처리 중...';
+
+  // 로그인 전 잠금 키 청소
+  try {
+    Object.keys(localStorage).forEach(key => {
+      if(key.includes('lock')) localStorage.removeItem(key);
+    });
+    if(window.indexedDB) indexedDB.deleteDatabase('supabase-auth-lock');
+  } catch(e) {}
+
+  try {
+    if(authTab==='login') {
+      const {error}=await sb.auth.signInWithPassword({email,password:pw});
+      if(error) { msg.className='login-msg error'; msg.textContent='이메일 또는 비밀번호가 틀렸어요.'; }
+    } else {
+      const {error}=await sb.auth.signUp({email,password:pw});
+      if(error) { msg.className='login-msg error'; msg.textContent='가입 실패: '+error.message; }
+      else { msg.className='login-msg success'; msg.textContent='✅ 가입 완료! 이메일을 확인해주세요.'; }
+    }
+  } catch(e) {
+    msg.className='login-msg error'; msg.textContent='오류가 발생했어요. 다시 시도해주세요.';
+  }
+}
+
+async function logout() {
+  await sb.auth.signOut();
+  currentUser=null; todos=[]; categories=[];
+  document.getElementById('app-screen').classList.add('hidden');
+  document.getElementById('login-screen').classList.remove('hidden');
+}
+
+// ── Data ──
+async function loadTodos() {
+  if(!currentUser) return;
+  sync('syncing');
+  const {data}=await sb.from('todos').select('*').eq('user_id',currentUser.id).eq('date',ds(currentDate)).order('sort_order');
+  todos=data||[]; undoStack=[]; renderUndoBtn();
+  sync('ok'); renderCatFilter(); renderTodos(); renderMiniCal();
+}
+
+async function saveTodo(todo) {
+  sync('syncing');
+  await sb.from('todos').update({
+    title:todo.title, body:todo.body, done:todo.done,
+    deadline:todo.deadline, cat_id:todo.cat_id, sort_order:todo.sort_order
+  }).eq('id',todo.id);
+  sync('ok');
+}
+
+async function deleteTodoDb(id) {
+  sync('syncing');
+  await sb.from('todos').delete().eq('id',id);
+  sync('ok');
+}
+
+async function saveAllOrders() {
+  sync('syncing');
+  await Promise.all(todos.map((t,i)=>sb.from('todos').update({sort_order:i}).eq('id',t.id)));
+  sync('ok');
+}
+
+async function loadCategories() {
+  if(!currentUser) return;
+  const {data}=await sb.from('categories').select('*').eq('user_id',currentUser.id).order('created_at');
+  categories=data||[];
+}
+
+async function saveCategoriesDb() {
+  if(!currentUser) return;
+  await sb.from('categories').delete().eq('user_id',currentUser.id);
+  if(categories.length) await sb.from('categories').insert(categories.map(c=>({id:c.id,user_id:currentUser.id,name:c.name,color:c.color})));
+}
+
+async function loadMonth() {
+  if(!currentUser) return {};
+  const y=calViewDate.getFullYear(),m=calViewDate.getMonth()+1;
+  const from=`${y}-${String(m).padStart(2,'0')}-01`;
+  const to=`${y}-${String(m).padStart(2,'0')}-31`;
+  const {data}=await sb.from('todos').select('*').eq('user_id',currentUser.id).gte('date',from).lte('date',to);
+  const result={};
+  (data||[]).forEach(t=>{ if(!result[t.date]) result[t.date]=[]; result[t.date].push(t); });
+  return result;
+}
+
+// ── Undo ──
+function pushUndo(desc) {
+  undoStack.push({todos:dc(todos),desc});
+  if(undoStack.length>UNDO_LIMIT) undoStack.shift();
+  renderUndoBtn();
+}
+function renderUndoBtn() {
+  const btn=document.getElementById('undo-btn'),cnt=document.getElementById('undo-count');
+  if(undoStack.length){ btn.classList.add('visible'); cnt.textContent=undoStack.length>1?`(${undoStack.length})`:''; }
+  else btn.classList.remove('visible');
+}
+async function undo() {
+  if(!undoStack.length) return;
+  const snap=undoStack.pop();
+  const old=dc(todos); todos=snap.todos;
+  // Sync: delete new ones, restore deleted ones, update changed ones
+  for(const t of todos) await saveTodo(t);
+  for(const t of old) { if(!todos.find(x=>x.id===t.id)) await deleteTodoDb(t.id); }
+  renderTodos(); renderUndoBtn();
+  toast(`↩ "${snap.desc}" 되돌렸어요`);
+}
+
+// ── Category filter ──
+function renderCatFilter() {
+  const bar=document.getElementById('cat-filter-bar');
+  bar.querySelectorAll('.cat-filter-chip').forEach(el=>el.remove());
+  const mgr=bar.querySelector('.cat-manage-btn');
+
+  // activeCatFilter가 현재 카테고리 목록에 없으면 전체로 리셋
+  if(activeCatFilter!=='' && !categories.find(c=>c.id===activeCatFilter)) {
+    activeCatFilter='';
+  }
+
+  const all=document.createElement('div');
+  all.className='cat-filter-chip'+(activeCatFilter===''?' active':'');
+  all.textContent='전체';
+  if(activeCatFilter==='') all.style.cssText='background:var(--accent);color:#fff;border-color:var(--accent)';
+  all.onclick=()=>setCF('');
+  bar.insertBefore(all,mgr);
+
+  categories.forEach(cat=>{
+    const a=activeCatFilter===cat.id;
+    const chip=document.createElement('div');
+    chip.className='cat-filter-chip'+(a?' active':'');
+    chip.textContent=cat.name;
+    chip.style.cssText=a?`background:${cat.color};color:#fff;border-color:${cat.color}`:`border-left:3px solid ${cat.color}`;
+    chip.onclick=()=>setCF(cat.id);
+    bar.insertBefore(chip,mgr);
+  });
+}
+function setCF(id) { activeCatFilter=id; renderCatFilter(); renderTodos(); }
+
+// ── Render todos ──
+function renderTodos() {
+  const list=document.getElementById('todo-list');
+  document.getElementById('date-display').textContent=fmtDate(currentDate);
+  document.getElementById('todo-date-label').textContent=ds(currentDate)===todayStr?"TODAY'S TASKS":"TASKS";
+  const total=todos.length,done=todos.filter(t=>t.done).length;
+  document.getElementById('stat-total').textContent=total;
+  document.getElementById('stat-done').textContent=done;
+  document.getElementById('stat-remain').textContent=total-done;
+  // 미완료 이월 버튼: 미완료 항목이 있을 때만 표시
+  const carryBtn=document.getElementById('carry-btn');
+  if(total-done>0) carryBtn.classList.add('visible');
+  else carryBtn.classList.remove('visible');
+
+  const filtered=activeCatFilter===''?todos:todos.filter(t=>t.cat_id===activeCatFilter);
+  if(!filtered.length){ list.innerHTML=`<div class="empty-state"><div class="emoji">${activeCatFilter?'🔍':'✨'}</div><p>${activeCatFilter?'이 카테고리에 할 일이 없어요':'할 일을 추가해보세요!'}</p></div>`; return; }
+
+  list.innerHTML='';
+  filtered.forEach(todo=>{
+    const ri=todos.indexOf(todo);
+    const cat=gc(todo.cat_id), dl=dlStatus(todo.deadline);
+    const div=document.createElement('div');
+    div.className='todo-item'+(todo.done?' done':'');
+    div.draggable=!isMob(); div.dataset.idx=ri;
+    div.style.borderLeftColor=cat?cat.color:'var(--border)';
+    div.innerHTML=`
+      <div class="drag-handle">⠿</div>
+      <div class="todo-checkbox ${todo.done?'checked':''}"></div>
+      ${cat?`<span class="todo-inline-cat" style="background:${cat.color}">${esc(cat.name)}</span>`:''}
+      <div class="todo-content">
+        <div class="todo-title">${esc(todo.title)}</div>
+        <div class="todo-meta">
+          ${dl?`<span class="todo-deadline ${dl.cls}">📅 ${dl.label}</span>`:''}
+          ${todo.body?`<span class="todo-body-preview">${esc(todo.body)}</span>`:''}
+        </div>
+      </div>
+      <div class="todo-actions">
+        <button class="action-btn move-btn" title="날짜 이동">📅</button>
+        <button class="action-btn">✏️</button>
+        <button class="action-btn del">🗑</button>
+      </div>`;
+
+    div.querySelector('.todo-checkbox').onclick=()=>toggleDone(ri);
+    div.querySelector('.todo-title').onclick=()=>openModal(ri);
+    div.querySelector('.move-btn').onclick=()=>openMoveModal(ri);
+    div.querySelectorAll('.action-btn')[1].onclick=()=>openModal(ri);
+    div.querySelectorAll('.action-btn')[2].onclick=()=>delTodo(ri);
+
+    div.addEventListener('dragstart',e=>{dragSrcIdx=ri;div.classList.add('dragging');e.dataTransfer.effectAllowed='move';});
+    div.addEventListener('dragend',()=>{div.classList.remove('dragging');document.querySelectorAll('.todo-item').forEach(el=>el.classList.remove('drag-over'));});
+    div.addEventListener('dragover',e=>{e.preventDefault();div.classList.add('drag-over');});
+    div.addEventListener('dragleave',()=>div.classList.remove('drag-over'));
+    div.addEventListener('drop',async e=>{
+      e.preventDefault(); div.classList.remove('drag-over');
+      if(dragSrcIdx!==null&&dragSrcIdx!==ri){
+        pushUndo('순서 변경');
+        const moved=todos.splice(dragSrcIdx,1)[0];
+        const nt=todos.indexOf(todo);
+        todos.splice(nt<0?todos.length:nt,0,moved);
+        dragSrcIdx=null; renderTodos(); await saveAllOrders();
+      }
+    });
+    list.appendChild(div);
+  });
+}
+
+// ── Actions ──
+async function addTodo() {
+  const inp=document.getElementById('new-todo-input'),title=inp.value.trim();
+  if(!title) return;
+  inp.value=''; inp.disabled=true;
+  sync('syncing');
+  const {data,error}=await sb.from('todos').insert({
+    user_id:currentUser.id, date:ds(currentDate),
+    title, body:'', done:false, deadline:'',
+    cat_id:activeCatFilter||'', sort_order:todos.length
+  }).select().single();
+  inp.disabled=false; inp.focus();
+  if(error||!data){ sync('ok'); toast('❌ 저장 실패, 다시 시도해주세요'); return; }
+  // DB에서 최신 목록을 다시 불러와 로컬 상태와 항상 동기화
+  const {data:fresh}=await sb.from('todos').select('*').eq('user_id',currentUser.id).eq('date',ds(currentDate)).order('sort_order');
+  todos=fresh||[];
+  pushUndo('추가');
+  sync('ok'); renderTodos(); renderMiniCal();
+}
+
+async function toggleDone(idx) {
+  pushUndo(todos[idx].done?'완료 취소':'완료');
+  todos[idx].done=!todos[idx].done; renderTodos();
+  await saveTodo(todos[idx]);
+}
+
+async function delTodo(idx) {
+  pushUndo(`"${todos[idx].title}" 삭제`);
+  const id=todos[idx].id; todos.splice(idx,1); renderTodos();
+  toast('🗑 삭제됐어요. 되돌리기로 복구 가능해요');
+  await deleteTodoDb(id);
+}
+
+// ── 날짜 이동 Modal ──
+let movingIdx = null;
+function openMoveModal(idx) {
+  movingIdx=idx;
+  // 기본값: 내일
+  const tomorrow=new Date(currentDate);
+  tomorrow.setDate(tomorrow.getDate()+1);
+  document.getElementById('move-date-input').value=ds(tomorrow);
+  document.getElementById('move-modal-overlay').classList.add('open');
+}
+function closeMoveModal() { document.getElementById('move-modal-overlay').classList.remove('open'); movingIdx=null; }
+function setMoveDate(days) {
+  const d=new Date(currentDate); d.setDate(d.getDate()+days);
+  document.getElementById('move-date-input').value=ds(d);
+}
+async function confirmMove() {
+  if(movingIdx===null) return;
+  const targetDate=document.getElementById('move-date-input').value;
+  if(!targetDate||targetDate===ds(currentDate)) { toast('다른 날짜를 선택해주세요'); return; }
+  const todo=todos[movingIdx];
+  pushUndo(`"${todo.title}" 날짜 이동`);
+  // DB에서 날짜 변경
+  sync('syncing');
+  await sb.from('todos').update({date:targetDate}).eq('id',todo.id);
+  sync('ok');
+  todos.splice(movingIdx,1);
+  closeMoveModal(); renderTodos();
+  toast(`📅 "${todo.title}" → ${targetDate} 로 이동했어요`);
+}
+
+// ── 미완료 이월 ──
+async function carryForward() {
+  const incomplete=todos.filter(t=>!t.done);
+  if(!incomplete.length) { toast('미완료 항목이 없어요'); return; }
+  const tomorrow=new Date(currentDate); tomorrow.setDate(tomorrow.getDate()+1);
+  const tomorrowStr=ds(tomorrow);
+  if(!confirm(`미완료 항목 ${incomplete.length}개를 ${tomorrowStr}로 이월할까요?`)) return;
+  sync('syncing');
+  // 내일 기존 항목 마지막 순서 파악
+  const {data:existing}=await sb.from('todos').select('sort_order').eq('user_id',currentUser.id).eq('date',tomorrowStr).order('sort_order',{ascending:false}).limit(1);
+  let startOrder=(existing&&existing[0])?existing[0].sort_order+1:0;
+  for(const t of incomplete) {
+    await sb.from('todos').update({date:tomorrowStr,sort_order:startOrder++,done:false}).eq('id',t.id);
+  }
+  // 현재 날짜에서 제거
+  todos=todos.filter(t=>t.done);
+  sync('ok'); renderTodos();
+  toast(`⏭ 미완료 ${incomplete.length}개를 내일로 이월했어요!`);
+}
+
+// ── Detail Modal ──
+function openModal(idx) {
+  editingId=idx; const todo=todos[idx]; selectedModalCat=todo.cat_id||'';
+  document.getElementById('modal-title-input').value=todo.title;
+  document.getElementById('modal-body-input').value=todo.body||'';
+  document.getElementById('modal-deadline-input').value=todo.deadline||'';
+  renderModalCats();
+  document.getElementById('modal-overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('modal-title-input').focus(),100);
+}
+function renderModalCats() {
+  const wrap=document.getElementById('modal-cat-list'); wrap.innerHTML='';
+  const none=document.createElement('div');
+  none.className='m-cat-none'+(selectedModalCat===''?' selected':'');
+  none.textContent='없음'; none.onclick=()=>{selectedModalCat='';renderModalCats();};
+  wrap.appendChild(none);
+  categories.forEach(cat=>{
+    const chip=document.createElement('div');
+    chip.className='m-cat-chip'+(selectedModalCat===cat.id?' selected':'');
+    chip.style.background=cat.color; chip.textContent=cat.name;
+    chip.onclick=()=>{selectedModalCat=cat.id;renderModalCats();};
+    wrap.appendChild(chip);
+  });
+}
+function closeModal() { document.getElementById('modal-overlay').classList.remove('open'); editingId=null; }
+async function saveModal() {
+  if(editingId===null) return;
+  const title=document.getElementById('modal-title-input').value.trim();
+  if(!title) return;
+  pushUndo(`"${todos[editingId].title}" 편집`);
+  todos[editingId].title=title;
+  todos[editingId].body=document.getElementById('modal-body-input').value;
+  todos[editingId].deadline=document.getElementById('modal-deadline-input').value;
+  todos[editingId].cat_id=selectedModalCat;
+  const todoToSave=todos[editingId]; // closeModal 전에 참조 저장
+  closeModal(); renderTodos();
+  await saveTodo(todoToSave);
+}
+
+// ── Category Modal ──
+function openCatModal() { editingCats=categories.map(c=>({...c})); renderCatEditor(); document.getElementById('cat-modal-overlay').classList.add('open'); }
+function closeCatModal() { document.getElementById('cat-modal-overlay').classList.remove('open'); closeCp(); }
+function renderCatEditor() {
+  const wrap=document.getElementById('cat-list-editor'); wrap.innerHTML='';
+  editingCats.forEach((cat,i)=>{
+    const row=document.createElement('div'); row.className='cat-row';
+    row.innerHTML=`<div class="cat-dot" style="background:${cat.color}" data-i="${i}"></div><input class="cat-name-inp" type="text" value="${esc(cat.name)}" placeholder="카테고리 이름" maxlength="20"><button class="cat-del">🗑</button>`;
+    row.querySelector('.cat-dot').addEventListener('click',e=>{e.stopPropagation();openCp(e,i);});
+    row.querySelector('.cat-name-inp').addEventListener('input',e=>{editingCats[i].name=e.target.value;});
+    row.querySelector('.cat-del').addEventListener('click',()=>{editingCats.splice(i,1);renderCatEditor();});
+    wrap.appendChild(row);
+  });
+}
+function addCatRow() {
+  editingCats.push({id:uid(),name:'',color:COLORS[editingCats.length%COLORS.length]});
+  renderCatEditor();
+  const ins=document.querySelectorAll('#cat-list-editor .cat-name-inp');
+  if(ins.length) ins[ins.length-1].focus();
+}
+async function saveCats() {
+  categories=editingCats.filter(c=>c.name.trim()!=='').map(c=>({...c,name:c.name.trim()}));
+  await saveCategoriesDb(); closeCatModal(); renderCatFilter(); renderTodos();
+}
+
+// ── Color Picker ──
+function openCp(e,i) {
+  e.stopPropagation(); cpTarget=i;
+  const p=document.getElementById('cpicker'), sw=document.getElementById('cp-swatches');
+  sw.innerHTML='';
+  const cur=editingCats[i].color;
+  COLORS.forEach(c=>{
+    const el=document.createElement('div'); el.className='cp-sw'+(c===cur?' selected':''); el.style.background=c;
+    el.addEventListener('click',ev=>{ev.stopPropagation();applyColor(c);}); sw.appendChild(el);
+  });
+  const inp=document.getElementById('cp-inp'),prev=document.getElementById('cp-prev');
+  inp.value=cur; prev.style.background=cur;
+  inp.oninput=()=>{ if(/^#[0-9a-fA-F]{6}$/.test(inp.value)){prev.style.background=inp.value;applyColor(inp.value);} };
+  const rect=e.target.getBoundingClientRect();
+  p.style.left=Math.min(rect.left,window.innerWidth-200)+'px';
+  p.style.top=Math.min(rect.bottom+6,window.innerHeight-180)+'px';
+  p.classList.add('open');
+}
+function applyColor(c) {
+  if(cpTarget===null) return;
+  editingCats[cpTarget].color=c;
+  const dots=document.querySelectorAll('#cat-list-editor .cat-dot');
+  if(dots[cpTarget]) dots[cpTarget].style.background=c;
+  document.querySelectorAll('.cp-sw').forEach(s=>s.classList.toggle('selected',s.style.background===c||rgbHex(s.style.background)===c));
+  document.getElementById('cp-inp').value=c;
+  document.getElementById('cp-prev').style.background=c;
+}
+function closeCp() { document.getElementById('cpicker').classList.remove('open'); cpTarget=null; }
+function rgbHex(rgb) { const m=rgb.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/); if(!m) return rgb; return '#'+[m[1],m[2],m[3]].map(x=>parseInt(x).toString(16).padStart(2,'0')).join(''); }
+document.addEventListener('click',e=>{ if(!document.getElementById('cpicker').contains(e.target)&&!e.target.classList.contains('cat-dot')) closeCp(); });
+
+// ── Mini Cal ──
+function renderMiniCal() {
+  const y=miniCalDate.getFullYear(),m=miniCalDate.getMonth();
+  document.getElementById('mini-month-label').textContent=`${y}.${String(m+1).padStart(2,'0')}`;
+  const grid=document.getElementById('mini-grid'); grid.innerHTML='';
+  ['일','월','화','수','목','금','토'].forEach(d=>{const el=document.createElement('div');el.className='mini-dow';el.textContent=d;grid.appendChild(el);});
+  const first=new Date(y,m,1),last=new Date(y,m+1,0);
+  for(let i=0;i<first.getDay();i++){const el=document.createElement('div');el.className='mini-day other-month';grid.appendChild(el);}
+  for(let d=1;d<=last.getDate();d++){
+    const dstr=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const el=document.createElement('div'); el.className='mini-day'; el.textContent=d;
+    if(dstr===todayStr) el.classList.add('today');
+    if(dstr===ds(currentDate)) el.classList.add('selected');
+    el.onclick=()=>{currentDate=new Date(y,m,d);loadTodos();renderMiniCal();closeSidebar();};
+    grid.appendChild(el);
+  }
+}
+document.getElementById('mini-prev').onclick=()=>{miniCalDate.setMonth(miniCalDate.getMonth()-1);renderMiniCal();};
+document.getElementById('mini-next').onclick=()=>{miniCalDate.setMonth(miniCalDate.getMonth()+1);renderMiniCal();};
+document.getElementById('prev-day').onclick=()=>{currentDate.setDate(currentDate.getDate()-1);miniCalDate=new Date(currentDate);loadTodos();};
+document.getElementById('next-day').onclick=()=>{currentDate.setDate(currentDate.getDate()+1);miniCalDate=new Date(currentDate);loadTodos();};
+
+// ── Calendar View ──
+async function renderCalView() {
+  const y=calViewDate.getFullYear(),m=calViewDate.getMonth();
+  document.getElementById('cal-month-label').textContent=`${y}년 ${m+1}월`;
+  monthData=await loadMonth();
+  const grid=document.getElementById('cal-grid'); grid.innerHTML='';
+  const first=new Date(y,m,1),last=new Date(y,m+1,0);
+  for(let i=0;i<first.getDay();i++){const c=document.createElement('div');c.className='cal-cell other-month';grid.appendChild(c);}
+  for(let d=1;d<=last.getDate();d++){
+    const dstr=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const cell=document.createElement('div'); cell.className='cal-cell';
+    if(dstr===todayStr) cell.classList.add('today');
+    if(dstr===ds(currentDate)) cell.classList.add('selected');
+    const num=document.createElement('div'); num.className='cal-num'; num.textContent=d; cell.appendChild(num);
+    const dt=monthData[dstr]||[];
+    const wrap=document.createElement('div'); wrap.className='cal-todos';
+    dt.slice(0,3).forEach(t=>{
+      const cat=gc(t.cat_id);
+      const chip=document.createElement('div'); chip.className='cal-chip'+(t.done?' done':'');
+      chip.style.borderLeftColor=cat?cat.color:'var(--accent)'; chip.textContent=t.title; wrap.appendChild(chip);
+    });
+    if(dt.length>3){const more=document.createElement('div');more.className='cal-more';more.textContent=`+${dt.length-3}개`;wrap.appendChild(more);}
+    cell.appendChild(wrap);
+    cell.onclick=()=>{currentDate=new Date(y,m,d);miniCalDate=new Date(currentDate);switchView('todo');loadTodos();};
+    grid.appendChild(cell);
+  }
+}
+document.getElementById('cal-prev').onclick=()=>{calViewDate.setMonth(calViewDate.getMonth()-1);renderCalView();};
+document.getElementById('cal-next').onclick=()=>{calViewDate.setMonth(calViewDate.getMonth()+1);renderCalView();};
+
+// ── View switch ──
+function switchView(v) {
+  document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
+  ['hnav-todo','hnav-cal','snav-todo','snav-cal'].forEach(id=>document.getElementById(id)?.classList.remove('active'));
+  if(v==='todo'){
+    document.getElementById('view-todo').classList.add('active');
+    document.getElementById('hnav-todo').classList.add('active');
+    document.getElementById('snav-todo').classList.add('active');
+  } else {
+    document.getElementById('view-cal').classList.add('active');
+    document.getElementById('hnav-cal').classList.add('active');
+    document.getElementById('snav-cal').classList.add('active');
+    calViewDate=new Date(currentDate); renderCalView();
+  }
+}
+
+// ── Sidebar ──
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('sidebar-overlay').classList.toggle('open'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('open'); }
+window.addEventListener('resize',()=>{ if(!isMob()) closeSidebar(); });
+
+// ── Keyboard ──
+document.getElementById('new-todo-input').addEventListener('keydown',e=>{if(e.key==='Enter')addTodo();});
+document.getElementById('login-pw').addEventListener('keydown',e=>{if(e.key==='Enter')submitAuth();});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){closeModal();closeCatModal();}
+  if(e.key==='z'&&(e.ctrlKey||e.metaKey)){e.preventDefault();undo();}
+});
+
+// ── Auth 초기화 ──
+// 3초 안에 응답 없으면 강제로 로그인 화면으로
+const loadingTimeout = setTimeout(() => {
+  document.getElementById('loading-screen').classList.add('hidden');
+  document.getElementById('login-screen').classList.remove('hidden');
+}, 3000);
+
+(async()=>{
+  try {
+    const {data:{session}}=await sb.auth.getSession();
+    clearTimeout(loadingTimeout);
+    if(session?.user){
+      currentUser=session.user;
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('app-screen').classList.remove('hidden');
+      await loadCategories();
+      await loadTodos();
+      renderCatFilter();
+      renderMiniCal();
+    } else {
+      document.getElementById('login-screen').classList.remove('hidden');
+    }
+  } catch(e) {
+    clearTimeout(loadingTimeout);
+    document.getElementById('login-screen').classList.remove('hidden');
+  }
+  document.getElementById('loading-screen').classList.add('hidden');
+})();
+
+// ── Auth 상태 변경 감지 (로그인/로그아웃 시) ──
+sb.auth.onAuthStateChange(async(event,session)=>{
+  if(event==='SIGNED_IN' && session?.user && !currentUser){
+    currentUser=session.user;
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('app-screen').classList.remove('hidden');
+    await loadCategories();
+    await loadTodos();
+    renderCatFilter();
+    renderMiniCal();
+    document.getElementById('loading-screen').classList.add('hidden');
+  } else if(event==='SIGNED_OUT'){
+    currentUser=null;
+    document.getElementById('login-screen').classList.remove('hidden');
+    document.getElementById('app-screen').classList.add('hidden');
+  }
+});
+</script>
+</body>
+</html>
