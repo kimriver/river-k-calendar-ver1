@@ -248,7 +248,13 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
 /* Calendar */
 #view-cal { overflow-y: auto; }
 #cal-view { padding:16px 22px 20px; display:flex; flex-direction:column; min-height:100%; }
-#cal-header { display:flex; align-items:center; gap:12px; margin-bottom:12px; flex-shrink:0; }
+#cal-header { display:flex; align-items:center; gap:12px; margin-bottom:8px; flex-shrink:0; }
+#cal-toggle-bar { display:flex; gap:6px; margin-bottom:10px; flex-shrink:0; flex-wrap:wrap; }
+.cal-toggle-btn { padding:4px 12px; border-radius:20px; border:1px solid var(--border); background:var(--bg3); color:var(--text3); font-family:'Noto Sans KR',sans-serif; font-size:12px; cursor:pointer; transition:all 0.15s; }
+.cal-toggle-btn.active { color:#fff; border-color:transparent; }
+#toggle-todo.active { background:var(--accent); }
+#toggle-income.active { background:#22c55e; }
+#toggle-expense.active { background:#ef4444; }
 #cal-month-label { font-family:'Space Mono',monospace; font-size:18px; font-weight:700; color:var(--text); flex:1; }
 .cal-nav { background:var(--bg3); border:1px solid var(--border); color:var(--text2); width:32px; height:32px; border-radius:7px; cursor:pointer; font-size:15px; transition:all 0.15s; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .cal-nav:hover { border-color:var(--accent); color:var(--accent2); }
@@ -266,6 +272,8 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
 .cal-todos { flex:1; overflow:hidden; display:flex; flex-direction:column; gap:2px; }
 .cal-chip { font-size:9px; padding:1px 5px; border-radius:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; background:var(--bg4); color:var(--text2); border-left:2px solid var(--accent); }
 .cal-chip.done { opacity:0.4; text-decoration:line-through; }
+.cal-chip.income { border-left-color:#22c55e; color:#4ade80; }
+.cal-chip.expense { border-left-color:#ef4444; color:#f87171; }
 .cal-more { font-size:9px; color:var(--text3); }
 
 /* Mobile sidebar */
@@ -452,6 +460,11 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
             <button class="cal-nav" id="cal-prev">‹</button>
             <div id="cal-month-label"></div>
             <button class="cal-nav" id="cal-next">›</button>
+          </div>
+          <div id="cal-toggle-bar">
+            <button class="cal-toggle-btn active" id="toggle-todo" onclick="toggleCalLayer('todo')">📋 할 일</button>
+            <button class="cal-toggle-btn active" id="toggle-income" onclick="toggleCalLayer('income')">💰 수입</button>
+            <button class="cal-toggle-btn active" id="toggle-expense" onclick="toggleCalLayer('expense')">💸 지출</button>
           </div>
           <div id="cal-grid-wrap">
             <div id="cal-dow-row">
@@ -1150,10 +1163,28 @@ document.getElementById('prev-day').onclick=()=>{currentDate.setDate(currentDate
 document.getElementById('next-day').onclick=()=>{currentDate.setDate(currentDate.getDate()+1);miniCalDate=new Date(currentDate);loadTodos();};
 
 // ── Calendar View ──
+const calLayers = { todo: true, income: true, expense: true };
+
+function toggleCalLayer(type) {
+  calLayers[type] = !calLayers[type];
+  const btn = document.getElementById(`toggle-${type}`);
+  btn.classList.toggle('active', calLayers[type]);
+  renderCalView();
+}
+
 async function renderCalView() {
   const y=calViewDate.getFullYear(),m=calViewDate.getMonth();
   document.getElementById('cal-month-label').textContent=`${y}년 ${m+1}월`;
-  monthData=await loadMonth();
+
+  // 필요한 데이터 로드
+  const promises = [];
+  if(calLayers.todo) promises.push(loadMonth());
+  else promises.push(Promise.resolve({}));
+  if(calLayers.income||calLayers.expense) promises.push(loadMonthTx(y,m));
+  else promises.push(Promise.resolve([]));
+  const [todoData, txData] = await Promise.all(promises);
+  monthData = todoData;
+
   const grid=document.getElementById('cal-grid'); grid.innerHTML='';
   const first=new Date(y,m,1),last=new Date(y,m+1,0);
   for(let i=0;i<first.getDay();i++){const c=document.createElement('div');c.className='cal-cell other-month';grid.appendChild(c);}
@@ -1163,18 +1194,50 @@ async function renderCalView() {
     if(dstr===todayStr) cell.classList.add('today');
     if(dstr===ds(currentDate)) cell.classList.add('selected');
     const num=document.createElement('div'); num.className='cal-num'; num.textContent=d; cell.appendChild(num);
-    const dt=monthData[dstr]||[];
     const wrap=document.createElement('div'); wrap.className='cal-todos';
-    dt.slice(0,3).forEach(t=>{
-      const cat=gc(t.cat_id);
-      const chip=document.createElement('div'); chip.className='cal-chip'+(t.done?' done':'');
-      chip.style.borderLeftColor=cat?cat.color:'var(--accent)'; chip.textContent=t.title; wrap.appendChild(chip);
-    });
-    if(dt.length>3){const more=document.createElement('div');more.className='cal-more';more.textContent=`+${dt.length-3}개`;wrap.appendChild(more);}
+
+    let itemCount=0;
+    // 할 일
+    if(calLayers.todo){
+      const dt=monthData[dstr]||[];
+      dt.slice(0,2).forEach(t=>{
+        if(itemCount>=4) return;
+        const cat=gc(t.cat_id);
+        const chip=document.createElement('div'); chip.className='cal-chip'+(t.done?' done':'');
+        chip.style.borderLeftColor=cat?cat.color:'var(--accent)'; chip.textContent=t.title; wrap.appendChild(chip); itemCount++;
+      });
+    }
+    // 수입
+    if(calLayers.income){
+      const incList=(txData||[]).filter(t=>t.date===dstr&&t.type==='income');
+      incList.slice(0,2).forEach(t=>{
+        if(itemCount>=4) return;
+        const chip=document.createElement('div'); chip.className='cal-chip income';
+        chip.textContent=`💰 ${fmtAmt(t.amount)}`; wrap.appendChild(chip); itemCount++;
+      });
+    }
+    // 지출
+    if(calLayers.expense){
+      const expList=(txData||[]).filter(t=>t.date===dstr&&t.type==='expense');
+      expList.slice(0,2).forEach(t=>{
+        if(itemCount>=4) return;
+        const chip=document.createElement('div'); chip.className='cal-chip expense';
+        chip.textContent=`💸 ${fmtAmt(t.amount)}`; wrap.appendChild(chip); itemCount++;
+      });
+    }
+
     cell.appendChild(wrap);
     cell.onclick=()=>{currentDate=new Date(y,m,d);miniCalDate=new Date(currentDate);switchView('todo');loadTodos();};
     grid.appendChild(cell);
   }
+}
+
+async function loadMonthTx(y,m) {
+  if(!currentUser) return [];
+  const from=`${y}-${String(m+1).padStart(2,'0')}-01`;
+  const to=`${y}-${String(m+1).padStart(2,'0')}-31`;
+  const {data}=await sb.from('transactions').select('*').eq('user_id',currentUser.id).gte('date',from).lte('date',to);
+  return data||[];
 }
 document.getElementById('cal-prev').onclick=()=>{calViewDate.setMonth(calViewDate.getMonth()-1);renderCalView();};
 document.getElementById('cal-next').onclick=()=>{calViewDate.setMonth(calViewDate.getMonth()+1);renderCalView();};
