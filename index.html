@@ -199,33 +199,33 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
 #add-btn { background:var(--accent); border:none; border-radius:var(--radius); color:white; padding:10px 16px; cursor:pointer; font-family:'Noto Sans KR',sans-serif; font-size:14px; font-weight:500; transition:all 0.2s; white-space:nowrap; flex-shrink:0; }
 #add-btn:hover { background:var(--accent2); }
 
+.tx-cat-filter-bar { display:flex; gap:5px; padding:8px 22px; border-bottom:1px solid var(--border); flex-shrink:0; overflow-x:auto; align-items:center; }
+.tx-cat-filter-bar::-webkit-scrollbar { display:none; }
+
 /* ── 수입/지출 ── */
-.tx-header { padding:16px 22px 12px; border-bottom:1px solid var(--border); flex-shrink:0; }
-.tx-header-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
-.tx-title { font-size:18px; font-weight:700; color:var(--text); }
-.tx-month-nav { display:flex; align-items:center; gap:8px; }
-.tx-month-label { font-family:'Space Mono',monospace; font-size:13px; color:var(--text2); min-width:80px; text-align:center; }
-.tx-summary { display:flex; gap:12px; }
-.tx-summary-item { background:var(--bg3); border:1px solid var(--border); border-radius:10px; padding:10px 16px; flex:1; }
-.tx-summary-label { font-size:11px; color:var(--text3); margin-bottom:4px; }
-.tx-summary-amount { font-size:20px; font-weight:700; font-family:'Space Mono',monospace; }
-.income-color { color:#4ade80; }
-.expense-color { color:#f87171; }
+.tx-header { padding:16px 22px 10px; border-bottom:1px solid var(--border); flex-shrink:0; }
+#income-date-label, #expense-date-label { font-family:'Space Mono',monospace; font-size:10px; color:var(--text3); letter-spacing:2px; text-transform:uppercase; margin-bottom:4px; }
+.tx-date-big { font-size:22px; font-weight:700; color:var(--text); display:flex; align-items:center; gap:10px; }
+.tx-stats { display:flex; gap:8px; margin-top:8px; flex-wrap:wrap; }
+.tx-cat-filter-bar { display:flex; gap:5px; padding:8px 22px; border-bottom:1px solid var(--border); flex-shrink:0; overflow-x:auto; align-items:center; }
+.tx-cat-filter-bar::-webkit-scrollbar { display:none; }
+.income-color { color:#4ade80; font-weight:600; }
+.expense-color { color:#f87171; font-weight:600; }
 .tx-list-wrap { flex:1; overflow-y:auto; padding:12px 22px; }
-.tx-item { display:flex; align-items:center; gap:12px; padding:11px 14px; margin-bottom:6px; background:var(--bg2); border:1px solid var(--border); border-left-width:3px; border-radius:var(--radius); transition:all 0.2s; }
+.tx-item { display:flex; align-items:center; gap:10px; padding:11px 13px; margin-bottom:6px; background:var(--bg2); border:1px solid var(--border); border-left-width:3px; border-radius:var(--radius); transition:all 0.2s; }
 .tx-item:hover { background:var(--bg3); }
 .tx-item-income { border-left-color:#4ade80; }
 .tx-item-expense { border-left-color:#f87171; }
-.tx-item-date { font-family:'Space Mono',monospace; font-size:11px; color:var(--text3); flex-shrink:0; width:52px; }
-.tx-item-memo { flex:1; font-size:14px; color:var(--text); }
+.tx-item-cat { display:inline-flex; align-items:center; padding:2px 8px; border-radius:10px; font-size:10px; font-weight:600; color:#fff; flex-shrink:0; white-space:nowrap; max-width:80px; overflow:hidden; text-overflow:ellipsis; }
+.tx-item-memo { flex:1; font-size:14px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .tx-item-memo.empty { color:var(--text3); font-style:italic; }
 .tx-item-amount { font-family:'Space Mono',monospace; font-size:14px; font-weight:700; flex-shrink:0; }
 .tx-item-amount.income { color:#4ade80; }
 .tx-item-amount.expense { color:#f87171; }
-.tx-item-del { background:none; border:none; color:var(--text3); cursor:pointer; padding:4px; border-radius:4px; font-size:13px; transition:all 0.15s; }
+.tx-item-del { background:none; border:none; color:var(--text3); cursor:pointer; padding:5px; border-radius:5px; font-size:13px; transition:all 0.15s; }
 .tx-item-del:hover { color:var(--red); background:var(--bg4); }
 .tx-add-bar { padding:10px 22px; border-top:1px solid var(--border); display:flex; gap:8px; flex-shrink:0; }
-.tx-amount-input { width:130px; background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); padding:10px 14px; color:var(--text); font-family:'Space Mono',monospace; font-size:14px; outline:none; transition:border-color 0.2s; flex-shrink:0; }
+.tx-amount-input { width:120px; background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); padding:10px 14px; color:var(--text); font-family:'Space Mono',monospace; font-size:14px; outline:none; transition:border-color 0.2s; flex-shrink:0; }
 .tx-amount-input:focus { border-color:var(--accent); }
 .tx-memo-input { flex:1; background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); padding:10px 14px; color:var(--text); font-family:'Noto Sans KR',sans-serif; font-size:14px; outline:none; transition:border-color 0.2s; min-width:0; }
 .tx-memo-input:focus { border-color:var(--accent); }
@@ -238,6 +238,8 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
 .tx-empty { text-align:center; padding:60px 20px; color:var(--text3); }
 .tx-empty .emoji { font-size:36px; margin-bottom:12px; }
 .tx-date-group-label { font-size:11px; color:var(--text3); font-family:'Space Mono',monospace; padding:8px 0 4px; border-bottom:1px solid var(--border); margin-bottom:6px; }
+#tx-cat-add-row { display:flex; align-items:center; gap:8px; padding:10px 12px; border:1px dashed var(--border); border-radius:8px; color:var(--text3); cursor:pointer; font-size:13px; transition:all 0.15s; margin-top:8px; }
+#tx-cat-add-row:hover { border-color:var(--accent); color:var(--accent2); }
 
 /* Calendar */
 #view-cal { overflow-y: auto; }
@@ -315,8 +317,8 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
 .cat-name-inp::placeholder { color:var(--text3); }
 .cat-del { background:none; border:none; color:var(--text3); cursor:pointer; font-size:14px; padding:4px 6px; border-radius:5px; transition:all 0.15s; }
 .cat-del:hover { color:var(--red); }
-#cat-add-row { display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px dashed var(--border); border-radius:8px; cursor:pointer; transition:all 0.15s; margin-top:4px; color:var(--text3); font-size:13px; }
-#cat-add-row:hover { border-color:var(--accent); color:var(--accent2); background:var(--accent-dim); }
+#cat-add-row, #tx-cat-add-row { display:flex; align-items:center; gap:10px; padding:10px 12px; border:1px dashed var(--border); border-radius:8px; cursor:pointer; transition:all 0.15s; margin-top:4px; color:var(--text3); font-size:13px; }
+#cat-add-row:hover, #tx-cat-add-row:hover { border-color:var(--accent); color:var(--accent2); background:var(--accent-dim); }
 
 /* Color picker */
 #cpicker { position:fixed; z-index:400; background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:13px; box-shadow:var(--shadow); display:none; min-width:185px; }
@@ -458,25 +460,24 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
 
       <!-- Income View -->
       <div class="view" id="view-income">
-        <div class="tx-header">
-          <div class="tx-header-top">
-            <div class="tx-title">💰 수입</div>
-            <div class="tx-month-nav">
-              <button class="cal-nav" id="income-prev">‹</button>
-              <span class="tx-month-label" id="income-month-label"></span>
-              <button class="cal-nav" id="income-next">›</button>
-            </div>
+        <div class="tx-header" id="income-header">
+          <div id="income-date-label">INCOME</div>
+          <div class="tx-date-big">
+            <button class="date-nav" id="income-prev-day">‹</button>
+            <span id="income-date-display"></span>
+            <button class="date-nav" id="income-next-day">›</button>
           </div>
-          <div class="tx-summary income-summary">
-            <div class="tx-summary-item">
-              <div class="tx-summary-label">이번 달 수입</div>
-              <div class="tx-summary-amount income-color" id="income-total">₩0</div>
-            </div>
+          <div class="tx-stats">
+            <div class="stat-pill">이번 달 수입 <span class="income-color" id="income-month-total">₩0</span></div>
+            <div class="stat-pill">오늘 수입 <span class="income-color" id="income-day-total">₩0</span></div>
           </div>
+        </div>
+        <div class="tx-cat-filter-bar" id="income-cat-filter-bar">
+          <button class="cat-manage-btn" onclick="openTxCatModal('income')">⚙ 카테고리</button>
         </div>
         <div class="tx-list-wrap" id="income-list"></div>
         <div class="tx-add-bar">
-          <input type="number" class="tx-amount-input" id="income-amount-input" placeholder="금액 입력" min="0">
+          <input type="number" class="tx-amount-input" id="income-amount-input" placeholder="금액" min="0">
           <input type="text" class="tx-memo-input" id="income-memo-input" placeholder="메모 (선택)">
           <button class="tx-add-btn income-btn" onclick="addTransaction('income')">추가</button>
         </div>
@@ -484,25 +485,24 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
 
       <!-- Expense View -->
       <div class="view" id="view-expense">
-        <div class="tx-header">
-          <div class="tx-header-top">
-            <div class="tx-title">💸 지출</div>
-            <div class="tx-month-nav">
-              <button class="cal-nav" id="expense-prev">‹</button>
-              <span class="tx-month-label" id="expense-month-label"></span>
-              <button class="cal-nav" id="expense-next">›</button>
-            </div>
+        <div class="tx-header" id="expense-header">
+          <div id="expense-date-label">EXPENSE</div>
+          <div class="tx-date-big">
+            <button class="date-nav" id="expense-prev-day">‹</button>
+            <span id="expense-date-display"></span>
+            <button class="date-nav" id="expense-next-day">›</button>
           </div>
-          <div class="tx-summary expense-summary">
-            <div class="tx-summary-item">
-              <div class="tx-summary-label">이번 달 지출</div>
-              <div class="tx-summary-amount expense-color" id="expense-total">₩0</div>
-            </div>
+          <div class="tx-stats">
+            <div class="stat-pill">이번 달 지출 <span class="expense-color" id="expense-month-total">₩0</span></div>
+            <div class="stat-pill">오늘 지출 <span class="expense-color" id="expense-day-total">₩0</span></div>
           </div>
+        </div>
+        <div class="tx-cat-filter-bar" id="expense-cat-filter-bar">
+          <button class="cat-manage-btn" onclick="openTxCatModal('expense')">⚙ 카테고리</button>
         </div>
         <div class="tx-list-wrap" id="expense-list"></div>
         <div class="tx-add-bar">
-          <input type="number" class="tx-amount-input" id="expense-amount-input" placeholder="금액 입력" min="0">
+          <input type="number" class="tx-amount-input" id="expense-amount-input" placeholder="금액" min="0">
           <input type="text" class="tx-memo-input" id="expense-memo-input" placeholder="메모 (선택)">
           <button class="tx-add-btn expense-btn" onclick="addTransaction('expense')">추가</button>
         </div>
@@ -587,7 +587,24 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
   </div>
 </div>
 
-<div id="toast"></div>
+<!-- TX Category Modal -->
+<div class="overlay" id="tx-cat-modal-overlay" onclick="handleOC(event,'tx-cat-modal-overlay',closeTxCatModal)">
+  <div class="modal-sheet" style="max-width:440px">
+    <div class="modal-handle"></div>
+    <div class="modal-hd">
+      <div class="modal-hd-title" id="tx-cat-modal-title">🏷 카테고리 관리</div>
+      <button class="modal-x" onclick="closeTxCatModal()">✕</button>
+    </div>
+    <div class="modal-bd">
+      <div id="tx-cat-list-editor"></div>
+      <div id="tx-cat-add-row" onclick="addTxCatRow()"><span>＋</span> 새 카테고리 추가</div>
+    </div>
+    <div class="modal-ft">
+      <button class="mbtn sec" onclick="closeTxCatModal()">취소</button>
+      <button class="mbtn pri" onclick="saveTxCats()">저장</button>
+    </div>
+  </div>
+</div>
 
 <script>
 // ══════════════════════════════════════
@@ -1039,11 +1056,12 @@ async function saveCats() {
 }
 
 // ── Color Picker ──
-function openCp(e,i) {
-  e.stopPropagation(); cpTarget=i;
+let cpIsTx = false;
+function openCp(e, i, isTx=false) {
+  e.stopPropagation(); cpTarget=i; cpIsTx=isTx;
   const p=document.getElementById('cpicker'), sw=document.getElementById('cp-swatches');
   sw.innerHTML='';
-  const cur=editingCats[i].color;
+  const cur=isTx?editingTxCats[i].color:editingCats[i].color;
   COLORS.forEach(c=>{
     const el=document.createElement('div'); el.className='cp-sw'+(c===cur?' selected':''); el.style.background=c;
     el.addEventListener('click',ev=>{ev.stopPropagation();applyColor(c);}); sw.appendChild(el);
@@ -1058,14 +1076,20 @@ function openCp(e,i) {
 }
 function applyColor(c) {
   if(cpTarget===null) return;
-  editingCats[cpTarget].color=c;
-  const dots=document.querySelectorAll('#cat-list-editor .cat-dot');
-  if(dots[cpTarget]) dots[cpTarget].style.background=c;
+  if(cpIsTx) {
+    editingTxCats[cpTarget].color=c;
+    const dots=document.querySelectorAll('#tx-cat-list-editor .cat-dot');
+    if(dots[cpTarget]) dots[cpTarget].style.background=c;
+  } else {
+    editingCats[cpTarget].color=c;
+    const dots=document.querySelectorAll('#cat-list-editor .cat-dot');
+    if(dots[cpTarget]) dots[cpTarget].style.background=c;
+  }
   document.querySelectorAll('.cp-sw').forEach(s=>s.classList.toggle('selected',s.style.background===c||rgbHex(s.style.background)===c));
   document.getElementById('cp-inp').value=c;
   document.getElementById('cp-prev').style.background=c;
 }
-function closeCp() { document.getElementById('cpicker').classList.remove('open'); cpTarget=null; }
+function closeCp() { document.getElementById('cpicker').classList.remove('open'); cpTarget=null; cpIsTx=false; }
 function rgbHex(rgb) { const m=rgb.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/); if(!m) return rgb; return '#'+[m[1],m[2],m[3]].map(x=>parseInt(x).toString(16).padStart(2,'0')).join(''); }
 document.addEventListener('click',e=>{ if(!document.getElementById('cpicker').contains(e.target)&&!e.target.classList.contains('cat-dot')) closeCp(); });
 
@@ -1150,53 +1174,127 @@ function switchView(v) {
 // ── 수입/지출 State ──
 let txIncomeDate = new Date();
 let txExpenseDate = new Date();
-let transactions = [];
+let txIncomeCats = [];
+let txExpenseCats = [];
+let activeTxCatFilter = { income: '', expense: '' };
+let editingTxCats = [];
+let currentTxCatType = '';
 
 function fmtAmt(n) { return '₩'+n.toLocaleString('ko-KR'); }
+function getTxDate(type) { return type==='income' ? txIncomeDate : txExpenseDate; }
+function getTxCats(type) { return type==='income' ? txIncomeCats : txExpenseCats; }
+function gcTx(type, id) { return getTxCats(type).find(c=>c.id===id)||null; }
+
+async function loadTxCats(type) {
+  if(!currentUser) return;
+  const {data}=await sb.from('transaction_categories').select('*').eq('user_id',currentUser.id).eq('type',type).order('created_at');
+  if(type==='income') txIncomeCats=data||[];
+  else txExpenseCats=data||[];
+}
 
 async function loadTransactions(type) {
   if(!currentUser) return [];
-  const d = type==='income' ? txIncomeDate : txExpenseDate;
+  const d=getTxDate(type);
   const y=d.getFullYear(), m=d.getMonth()+1;
   const from=`${y}-${String(m).padStart(2,'0')}-01`;
   const to=`${y}-${String(m).padStart(2,'0')}-31`;
   const {data}=await sb.from('transactions').select('*')
     .eq('user_id',currentUser.id).eq('type',type)
-    .gte('date',from).lte('date',to).order('date',{ascending:false}).order('created_at',{ascending:false});
+    .gte('date',from).lte('date',to)
+    .order('date',{ascending:false}).order('created_at',{ascending:false});
   return data||[];
 }
 
 async function renderTxView(type) {
-  const isIncome = type==='income';
-  const d = isIncome ? txIncomeDate : txExpenseDate;
-  const y=d.getFullYear(), m=d.getMonth();
-  const label = `${y}년 ${m+1}월`;
-  document.getElementById(`${type}-month-label`).textContent=label;
+  const d=getTxDate(type);
+  const dayStr=ds(d);
+  document.getElementById(`${type}-date-display`).textContent=fmtDate(d);
 
-  const list = await loadTransactions(type);
-  const total = list.reduce((s,t)=>s+t.amount,0);
-  document.getElementById(`${type}-total`).textContent=fmtAmt(total);
+  await loadTxCats(type);
+  renderTxCatFilter(type);
 
-  const wrap = document.getElementById(`${type}-list`);
-  if(!list.length){
-    wrap.innerHTML=`<div class="tx-empty"><div class="emoji">${isIncome?'💰':'💸'}</div><p>${isIncome?'수입':'지출'} 내역이 없어요</p></div>`;
+  const allList=await loadTransactions(type);
+  const dayList=allList.filter(t=>t.date===dayStr);
+  const monthTotal=allList.reduce((s,t)=>s+t.amount,0);
+  const dayTotal=dayList.reduce((s,t)=>s+t.amount,0);
+  document.getElementById(`${type}-month-total`).textContent=fmtAmt(monthTotal);
+  document.getElementById(`${type}-day-total`).textContent=fmtAmt(dayTotal);
+
+  // 카테고리 필터 적용
+  const activeCat=activeTxCatFilter[type];
+  const filtered=activeCat===''?dayList:dayList.filter(t=>t.cat_id===activeCat);
+
+  const wrap=document.getElementById(`${type}-list`);
+  const isIncome=type==='income';
+  if(!filtered.length){
+    wrap.innerHTML=`<div class="tx-empty"><div class="emoji">${isIncome?'💰':'💸'}</div><p>${activeCat?'이 카테고리에 내역이 없어요':(isIncome?'수입 내역을 추가해보세요!':'지출 내역을 추가해보세요!')}</p></div>`;
     return;
   }
-
-  // 날짜별 그룹핑
-  const groups={};
-  list.forEach(t=>{ if(!groups[t.date]) groups[t.date]=[]; groups[t.date].push(t); });
   wrap.innerHTML='';
-  Object.keys(groups).sort((a,b)=>b.localeCompare(a)).forEach(date=>{
-    const label=document.createElement('div'); label.className='tx-date-group-label'; label.textContent=date; wrap.appendChild(label);
-    groups[date].forEach(t=>{
-      const item=document.createElement('div'); item.className=`tx-item tx-item-${type}`;
-      item.innerHTML=`
-        <div class="tx-item-memo ${t.memo?'':'empty'}">${t.memo||'메모 없음'}</div>
-        <div class="tx-item-amount ${type}">${fmtAmt(t.amount)}</div>
-        <button class="tx-item-del" onclick="deleteTx('${t.id}','${type}')">🗑</button>`;
-      wrap.appendChild(item);
-    });
+  filtered.forEach(t=>{
+    const cat=gcTx(type,t.cat_id);
+    const item=document.createElement('div');
+    item.className=`tx-item tx-item-${type}`;
+    item.style.borderLeftColor=cat?cat.color:(isIncome?'#4ade80':'#f87171');
+    item.innerHTML=`
+      ${cat?`<span class="todo-inline-cat" style="background:${cat.color}">${esc(cat.name)}</span>`:''}
+      <div class="tx-item-memo ${t.memo?'':'empty'}">${t.memo||'메모 없음'}</div>
+      <div class="tx-item-amount ${type}">${fmtAmt(t.amount)}</div>
+      <button class="tx-item-del" onclick="deleteTx('${t.id}','${type}')">🗑</button>`;
+    wrap.appendChild(item);
+  });
+}
+
+function renderTxCatFilter(type) {
+  const bar=document.getElementById(`${type}-cat-filter-bar`);
+  bar.querySelectorAll('.cat-filter-chip').forEach(el=>el.remove());
+  const mgr=bar.querySelector('.cat-manage-btn');
+  const cats=getTxCats(type);
+  const active=activeTxCatFilter[type];
+
+  const all=document.createElement('div');
+  all.className='cat-filter-chip'+(active===''?' active':'');
+  all.textContent='전체';
+  if(active==='') all.style.cssText='background:var(--accent);color:#fff;border-color:var(--accent)';
+  all.onclick=()=>{activeTxCatFilter[type]='';renderTxCatFilter(type);renderTxList(type);};
+  bar.insertBefore(all,mgr);
+
+  cats.forEach(cat=>{
+    const a=active===cat.id;
+    const chip=document.createElement('div');
+    chip.className='cat-filter-chip'+(a?' active':'');
+    chip.textContent=cat.name;
+    chip.style.cssText=a?`background:${cat.color};color:#fff;border-color:${cat.color}`:`border-left:3px solid ${cat.color}`;
+    chip.onclick=()=>{activeTxCatFilter[type]=cat.id;renderTxCatFilter(type);renderTxList(type);};
+    bar.insertBefore(chip,mgr);
+  });
+}
+
+async function renderTxList(type) {
+  const d=getTxDate(type);
+  const dayStr=ds(d);
+  const allList=await loadTransactions(type);
+  const dayList=allList.filter(t=>t.date===dayStr);
+  const activeCat=activeTxCatFilter[type];
+  const filtered=activeCat===''?dayList:dayList.filter(t=>t.cat_id===activeCat);
+  const isIncome=type==='income';
+  const wrap=document.getElementById(`${type}-list`);
+  if(!filtered.length){
+    wrap.innerHTML=`<div class="tx-empty"><div class="emoji">${isIncome?'💰':'💸'}</div><p>${activeCat?'이 카테고리에 내역이 없어요':(isIncome?'수입 내역을 추가해보세요!':'지출 내역을 추가해보세요!')}</p></div>`;
+    return;
+  }
+  wrap.innerHTML='';
+  filtered.forEach(t=>{
+    const cat=gcTx(type,t.cat_id);
+    const item=document.createElement('div');
+    item.className=`tx-item tx-item-${type}`;
+    item.style.borderLeftColor=cat?cat.color:(isIncome?'#4ade80':'#f87171');
+    item.innerHTML=`
+      ${cat?`<span class="todo-inline-cat" style="background:${cat.color}">${esc(cat.name)}</span>`:''}
+      <div class="tx-item-memo ${t.memo?'':'empty'}">${t.memo||'메모 없음'}</div>
+      <div class="tx-item-amount ${type}">${fmtAmt(t.amount)}</div>
+      <button class="tx-item-del" onclick="deleteTx('${t.id}','${type}')">🗑</button>`;
+    wrap.appendChild(item);
   });
 }
 
@@ -1206,20 +1304,18 @@ async function addTransaction(type) {
   const amount=parseInt(amtInput.value);
   if(!amount||amount<=0){ toast('금액을 입력해주세요'); return; }
   const memo=memoInput.value.trim();
+  const activeCat=activeTxCatFilter[type];
   sync('syncing');
   const {error}=await sb.from('transactions').insert({
     user_id:currentUser.id,
-    date:ds(new Date()),
-    type, amount, memo
+    date:ds(getTxDate(type)),
+    type, amount, memo,
+    cat_id:activeCat||''
   });
   sync('ok');
   if(error){ toast('❌ 저장 실패'); return; }
   amtInput.value=''; memoInput.value='';
-  // 현재 보고있는 달이 오늘 달이면 새로고침
-  const d = type==='income' ? txIncomeDate : txExpenseDate;
-  if(d.getFullYear()===new Date().getFullYear() && d.getMonth()===new Date().getMonth()){
-    renderTxView(type);
-  }
+  renderTxView(type);
   toast(`${type==='income'?'💰 수입':'💸 지출'} 추가됐어요!`);
 }
 
@@ -1232,12 +1328,52 @@ async function deleteTx(id, type) {
   toast('🗑 삭제됐어요');
 }
 
-document.getElementById('income-prev').onclick=()=>{txIncomeDate.setMonth(txIncomeDate.getMonth()-1);renderTxView('income');};
-document.getElementById('income-next').onclick=()=>{txIncomeDate.setMonth(txIncomeDate.getMonth()+1);renderTxView('income');};
-document.getElementById('expense-prev').onclick=()=>{txExpenseDate.setMonth(txExpenseDate.getMonth()-1);renderTxView('expense');};
-document.getElementById('expense-next').onclick=()=>{txExpenseDate.setMonth(txExpenseDate.getMonth()+1);renderTxView('expense');};
+// ── 수입/지출 카테고리 모달 ──
+function openTxCatModal(type) {
+  currentTxCatType=type;
+  editingTxCats=getTxCats(type).map(c=>({...c}));
+  renderTxCatEditor();
+  document.getElementById('tx-cat-modal-title').textContent=type==='income'?'💰 수입 카테고리':'💸 지출 카테고리';
+  document.getElementById('tx-cat-modal-overlay').classList.add('open');
+}
+function closeTxCatModal() { document.getElementById('tx-cat-modal-overlay').classList.remove('open'); closeCp(); }
+function renderTxCatEditor() {
+  const wrap=document.getElementById('tx-cat-list-editor'); wrap.innerHTML='';
+  editingTxCats.forEach((cat,i)=>{
+    const row=document.createElement('div'); row.className='cat-row';
+    row.innerHTML=`<div class="cat-dot" style="background:${cat.color}" data-i="${i}"></div><input class="cat-name-inp" type="text" value="${esc(cat.name)}" placeholder="카테고리 이름" maxlength="20"><button class="cat-del">🗑</button>`;
+    row.querySelector('.cat-dot').addEventListener('click',e=>{e.stopPropagation();openCp(e,i,true);});
+    row.querySelector('.cat-name-inp').addEventListener('input',e=>{editingTxCats[i].name=e.target.value;});
+    row.querySelector('.cat-del').addEventListener('click',()=>{editingTxCats.splice(i,1);renderTxCatEditor();});
+    wrap.appendChild(row);
+  });
+}
+function addTxCatRow() {
+  editingTxCats.push({id:uid(),name:'',color:COLORS[editingTxCats.length%COLORS.length],type:currentTxCatType});
+  renderTxCatEditor();
+  const ins=document.querySelectorAll('#tx-cat-list-editor .cat-name-inp');
+  if(ins.length) ins[ins.length-1].focus();
+}
+async function saveTxCats() {
+  const type=currentTxCatType;
+  const saved=editingTxCats.filter(c=>c.name.trim()!=='').map(c=>({...c,name:c.name.trim(),type}));
+  await sb.from('transaction_categories').delete().eq('user_id',currentUser.id).eq('type',type);
+  if(saved.length) await sb.from('transaction_categories').insert(saved.map(c=>({id:c.id,user_id:currentUser.id,name:c.name,color:c.color,type:c.type})));
+  if(type==='income') txIncomeCats=saved;
+  else txExpenseCats=saved;
+  closeTxCatModal();
+  renderTxCatFilter(type);
+  renderTxList(type);
+  toast('✅ 카테고리 저장됐어요');
+}
 
-// 수입/지출 Enter 키
+// 날짜 이동
+document.getElementById('income-prev-day').onclick=()=>{txIncomeDate.setDate(txIncomeDate.getDate()-1);renderTxView('income');};
+document.getElementById('income-next-day').onclick=()=>{txIncomeDate.setDate(txIncomeDate.getDate()+1);renderTxView('income');};
+document.getElementById('expense-prev-day').onclick=()=>{txExpenseDate.setDate(txExpenseDate.getDate()-1);renderTxView('expense');};
+document.getElementById('expense-next-day').onclick=()=>{txExpenseDate.setDate(txExpenseDate.getDate()+1);renderTxView('expense');};
+
+// Enter 키
 document.getElementById('income-memo-input').addEventListener('keydown',e=>{if(e.key==='Enter')addTransaction('income');});
 document.getElementById('expense-memo-input').addEventListener('keydown',e=>{if(e.key==='Enter')addTransaction('expense');});
 
@@ -1270,6 +1406,8 @@ const loadingTimeout = setTimeout(() => {
       document.getElementById('login-screen').classList.add('hidden');
       document.getElementById('app-screen').classList.remove('hidden');
       await loadCategories();
+      await loadTxCats('income');
+      await loadTxCats('expense');
       await loadTodos();
       renderCatFilter();
       renderMiniCal();
@@ -1290,6 +1428,8 @@ sb.auth.onAuthStateChange(async(event,session)=>{
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('app-screen').classList.remove('hidden');
     await loadCategories();
+    await loadTxCats('income');
+    await loadTxCats('expense');
     await loadTodos();
     renderCatFilter();
     renderMiniCal();
