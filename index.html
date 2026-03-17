@@ -6,7 +6,7 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0a0a0f">
-<title>Daily Todo</title>
+<title>River'K Today</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.26.0"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap');
@@ -245,7 +245,14 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
 #tx-cat-add-row { display:flex; align-items:center; gap:8px; padding:10px 12px; border:1px dashed var(--border); border-radius:8px; color:var(--text3); cursor:pointer; font-size:13px; transition:all 0.15s; margin-top:8px; }
 #tx-cat-add-row:hover { border-color:var(--accent); color:var(--accent2); }
 
-/* ── 대시보드 ── */
+#settings-btn { background:none; border:1px solid var(--border); border-radius:20px; color:var(--text3); font-size:14px; padding:5px 8px; cursor:pointer; transition:all 0.15s; }
+#settings-btn:hover { border-color:var(--accent); color:var(--accent2); }
+.settings-menu-item { display:flex; align-items:center; gap:10px; padding:10px 12px; background:var(--bg3); border:1px solid var(--border); border-radius:8px; margin-bottom:6px; cursor:grab; user-select:none; transition:all 0.15s; }
+.settings-menu-item:hover { border-color:var(--accent); }
+.settings-menu-item.dragging { opacity:0.3; cursor:grabbing; }
+.settings-menu-item.drag-over { border-color:var(--accent2); border-style:dashed; }
+.settings-drag-handle { color:var(--text3); font-size:14px; }
+.settings-menu-label { flex:1; font-size:14px; color:var(--text); }
 .dash-wrap { flex:1; overflow-y:auto; padding:16px 22px 20px; display:flex; flex-direction:column; gap:14px; }
 .dash-top { display:flex; align-items:flex-start; justify-content:space-between; }
 .dash-greeting { font-size:20px; font-weight:700; color:var(--text); }
@@ -401,7 +408,7 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
 <!-- 로딩 화면 -->
 <div id="loading-screen">
   <div id="loading-box">
-    <div id="loading-logo">River.K</div>
+    <div id="loading-logo">River'K Today</div>
     <div id="loading-spinner"></div>
   </div>
 </div>
@@ -434,7 +441,7 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
   <div id="header">
     <div id="header-left">
       <button id="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
-      <div id="header-title">DAILY TODO</div>
+      <div id="header-title">RIVER'K TODAY</div>
       <div id="sync-dot"></div>
     </div>
     <div id="header-right">
@@ -445,6 +452,7 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
       <button class="hnav-btn" id="hnav-income" onclick="switchView('income')">💰 수입</button>
       <button class="hnav-btn" id="hnav-expense" onclick="switchView('expense')">💸 지출</button>
       <button id="logout-btn" onclick="logout()">로그아웃</button>
+      <button id="settings-btn" onclick="openSettings()" title="환경설정">⚙️</button>
     </div>
   </div>
 
@@ -839,6 +847,27 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
     <div class="modal-ft">
       <button class="mbtn sec" onclick="closeEvCatModal()">취소</button>
       <button class="mbtn pri" onclick="saveEvCats()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- Settings Modal -->
+<div class="overlay" id="settings-overlay" onclick="handleOC(event,'settings-overlay',closeSettings)">
+  <div class="modal-sheet" style="max-width:480px">
+    <div class="modal-handle"></div>
+    <div class="modal-hd">
+      <div class="modal-hd-title">⚙️ 환경설정</div>
+      <button class="modal-x" onclick="closeSettings()">✕</button>
+    </div>
+    <div class="modal-bd">
+      <div class="modal-field">
+        <label>메뉴 순서 (드래그로 변경)</label>
+        <div id="settings-menu-list"></div>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="mbtn sec" onclick="closeSettings()">취소</button>
+      <button class="mbtn pri" onclick="saveSettings()">저장</button>
     </div>
   </div>
 </div>
@@ -1527,6 +1556,83 @@ function getTxDate(type) { return type==='income' ? txIncomeDate : txExpenseDate
 function getTxCats(type) { return type==='income' ? txIncomeCats : txExpenseCats; }
 function gcTx(type, id) { return getTxCats(type).find(c=>c.id===id)||null; }
 
+// ── 환경설정 ──
+const DEFAULT_MENU_ORDER = [
+  { id:'dash',  label:'🏠 홈' },
+  { id:'todo',  label:'📋 할 일 목록' },
+  { id:'cal',   label:'📅 월간 달력' },
+  { id:'event', label:'🗓 일정' },
+  { id:'income',label:'💰 수입' },
+  { id:'expense',label:'💸 지출' },
+];
+let menuOrder = [...DEFAULT_MENU_ORDER];
+let settingsDragSrc = null;
+
+function loadMenuOrder() {
+  try {
+    const saved = localStorage.getItem('rkt-menu-order');
+    if(saved) {
+      const ids = JSON.parse(saved);
+      menuOrder = ids.map(id=>DEFAULT_MENU_ORDER.find(m=>m.id===id)).filter(Boolean);
+      // 혹시 새로 추가된 메뉴가 있으면 뒤에 붙임
+      DEFAULT_MENU_ORDER.forEach(m=>{ if(!menuOrder.find(x=>x.id===m.id)) menuOrder.push(m); });
+    }
+  } catch(e) {}
+}
+
+function applyMenuOrder() {
+  const headerRight = document.getElementById('header-right');
+  const sidebarNav = document.getElementById('sidebar-nav');
+  // 헤더 버튼 순서 재배치
+  menuOrder.forEach(m=>{
+    const btn = document.getElementById(`hnav-${m.id}`);
+    if(btn) headerRight.insertBefore(btn, document.getElementById('logout-btn'));
+  });
+  // 사이드바 버튼 순서 재배치
+  menuOrder.forEach(m=>{
+    const btn = document.getElementById(`snav-${m.id}`);
+    if(btn) sidebarNav.appendChild(btn);
+  });
+}
+
+function openSettings() {
+  renderSettingsMenuList();
+  document.getElementById('settings-overlay').classList.add('open');
+}
+function closeSettings() { document.getElementById('settings-overlay').classList.remove('open'); }
+
+function renderSettingsMenuList() {
+  const wrap = document.getElementById('settings-menu-list');
+  wrap.innerHTML = '';
+  menuOrder.forEach((m, i) => {
+    const item = document.createElement('div');
+    item.className = 'settings-menu-item';
+    item.draggable = true;
+    item.dataset.idx = i;
+    item.innerHTML = `<span class="settings-drag-handle">⠿</span><span class="settings-menu-label">${m.label}</span>`;
+    item.addEventListener('dragstart', ()=>{ settingsDragSrc=i; item.classList.add('dragging'); });
+    item.addEventListener('dragend', ()=>{ item.classList.remove('dragging'); wrap.querySelectorAll('.settings-menu-item').forEach(el=>el.classList.remove('drag-over')); });
+    item.addEventListener('dragover', e=>{ e.preventDefault(); item.classList.add('drag-over'); });
+    item.addEventListener('dragleave', ()=>item.classList.remove('drag-over'));
+    item.addEventListener('drop', e=>{
+      e.preventDefault(); item.classList.remove('drag-over');
+      if(settingsDragSrc!==null && settingsDragSrc!==i){
+        const moved=menuOrder.splice(settingsDragSrc,1)[0];
+        menuOrder.splice(i,0,moved);
+        renderSettingsMenuList();
+      }
+    });
+    wrap.appendChild(item);
+  });
+}
+
+function saveSettings() {
+  try { localStorage.setItem('rkt-menu-order', JSON.stringify(menuOrder.map(m=>m.id))); } catch(e) {}
+  applyMenuOrder();
+  closeSettings();
+  toast('✅ 메뉴 순서가 저장됐어요!');
+}
+
 // ── Dashboard ──
 async function renderDash() {
   const now=new Date();
@@ -2087,7 +2193,7 @@ window.addEventListener('resize',()=>{ if(!isMob()) closeSidebar(); });
 document.getElementById('new-todo-input').addEventListener('keydown',e=>{if(e.key==='Enter')addTodo();});
 document.getElementById('login-pw').addEventListener('keydown',e=>{if(e.key==='Enter')submitAuth();});
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'){closeModal();closeCatModal();closeTxModal();closeEvModal();}
+  if(e.key==='Escape'){closeModal();closeCatModal();closeTxModal();closeEvModal();closeSettings();}
   if(e.key==='z'&&(e.ctrlKey||e.metaKey)){e.preventDefault();undo();}
 });
 
@@ -2110,6 +2216,8 @@ const loadingTimeout = setTimeout(() => {
       try { await loadTxCats('expense'); } catch(e) { console.warn('loadTxCats expense error',e); }
       try { await loadEvCats(); } catch(e) { console.warn('loadEvCats error',e); }
       try { await loadTodos(); } catch(e) { console.warn('loadTodos error',e); }
+      loadMenuOrder();
+      applyMenuOrder();
       renderCatFilter();
       renderMiniCal();
     } else {
