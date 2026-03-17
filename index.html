@@ -501,23 +501,6 @@ const SUPABASE_URL = 'https://koabxnqimggnofzfatsc.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtvYWJ4bnFpbWdnbm9memZhdHNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3MDU3OTcsImV4cCI6MjA4OTI4MTc5N30.KT2CarRDIEHbxFZgej1TAF_eVWMWGu-T-mhZVnyKcZk';
 // ══════════════════════════════════════
 
-// ── Web Locks API 비활성화 (Supabase 잠금 문제 방지) ──
-try {
-  // Web Locks API를 완전히 우회
-  if (navigator.locks) {
-    Object.defineProperty(navigator, 'locks', {
-      value: {
-        request: (name, optionsOrFn, fn) => {
-          const cb = fn || optionsOrFn;
-          return Promise.resolve().then(() => cb({ name }));
-        },
-        query: () => Promise.resolve({ held: [], pending: [] })
-      },
-      writable: false, configurable: false
-    });
-  }
-} catch(e) {}
-
 // ── localStorage 잠금 키 청소 ──
 try {
   Object.keys(localStorage).forEach(key => {
@@ -527,6 +510,7 @@ try {
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
   auth: {
+    storage: window.sessionStorage,
     storageKey: 'dailytodo-auth',
     autoRefreshToken: true,
     persistSession: true,
