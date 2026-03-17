@@ -224,6 +224,10 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
 .tx-item-amount.expense { color:#f87171; }
 .tx-item-del { background:none; border:none; color:var(--text3); cursor:pointer; padding:5px; border-radius:5px; font-size:13px; transition:all 0.15s; }
 .tx-item-del:hover { color:var(--red); background:var(--bg4); }
+.tx-item-content { flex:1; min-width:0; cursor:pointer; }
+.tx-item-title { font-size:14px; font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; transition:color 0.2s; }
+.tx-item-title:hover { color:var(--accent2); }
+.tx-item-memo-preview { font-size:11px; color:var(--text3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; }
 .tx-add-bar { padding:10px 22px; border-top:1px solid var(--border); display:flex; gap:8px; flex-shrink:0; }
 .tx-amount-input { width:120px; background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); padding:10px 14px; color:var(--text); font-family:'Space Mono',monospace; font-size:14px; outline:none; transition:border-color 0.2s; flex-shrink:0; }
 .tx-amount-input:focus { border-color:var(--accent); }
@@ -477,8 +481,8 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
         </div>
         <div class="tx-list-wrap" id="income-list"></div>
         <div class="tx-add-bar">
+          <input type="text" class="tx-memo-input" id="income-title-input" placeholder="제목 입력... (Enter)" maxlength="50">
           <input type="number" class="tx-amount-input" id="income-amount-input" placeholder="금액" min="0">
-          <input type="text" class="tx-memo-input" id="income-memo-input" placeholder="메모 (선택)">
           <button class="tx-add-btn income-btn" onclick="addTransaction('income')">추가</button>
         </div>
       </div>
@@ -502,8 +506,8 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
         </div>
         <div class="tx-list-wrap" id="expense-list"></div>
         <div class="tx-add-bar">
+          <input type="text" class="tx-memo-input" id="expense-title-input" placeholder="제목 입력... (Enter)" maxlength="50">
           <input type="number" class="tx-amount-input" id="expense-amount-input" placeholder="금액" min="0">
-          <input type="text" class="tx-memo-input" id="expense-memo-input" placeholder="메모 (선택)">
           <button class="tx-add-btn expense-btn" onclick="addTransaction('expense')">추가</button>
         </div>
       </div>
@@ -602,6 +606,35 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
     <div class="modal-ft">
       <button class="mbtn sec" onclick="closeTxCatModal()">취소</button>
       <button class="mbtn pri" onclick="saveTxCats()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- TX Detail Modal -->
+<div class="overlay" id="tx-modal-overlay" onclick="handleOC(event,'tx-modal-overlay',closeTxModal)">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-hd">
+      <input class="m-title-input" id="tx-modal-title-input" placeholder="제목을 입력하세요">
+      <button class="modal-x" onclick="closeTxModal()">✕</button>
+    </div>
+    <div class="modal-bd">
+      <div class="modal-field">
+        <label>카테고리</label>
+        <div id="tx-modal-cat-list"></div>
+      </div>
+      <div class="modal-field">
+        <label>금액</label>
+        <input type="number" class="m-date" id="tx-modal-amount-input" placeholder="금액 입력" min="0" style="max-width:200px">
+      </div>
+      <div class="modal-field">
+        <label>메모</label>
+        <textarea class="m-textarea" id="tx-modal-memo-input" placeholder="상세 메모..."></textarea>
+      </div>
+    </div>
+    <div class="modal-ft">
+      <button class="mbtn sec" onclick="closeTxModal()">취소</button>
+      <button class="mbtn pri" onclick="saveTxModal()">저장</button>
     </div>
   </div>
 </div>
@@ -1238,9 +1271,13 @@ async function renderTxView(type) {
     item.style.borderLeftColor=cat?cat.color:(isIncome?'#4ade80':'#f87171');
     item.innerHTML=`
       ${cat?`<span class="todo-inline-cat" style="background:${cat.color}">${esc(cat.name)}</span>`:''}
-      <div class="tx-item-memo ${t.memo?'':'empty'}">${t.memo||'메모 없음'}</div>
+      <div class="tx-item-content">
+        <div class="tx-item-title">${esc(t.title||'제목 없음')}</div>
+        ${t.memo?`<div class="tx-item-memo-preview">${esc(t.memo)}</div>`:''}
+      </div>
       <div class="tx-item-amount ${type}">${fmtAmt(t.amount)}</div>
       <button class="tx-item-del" onclick="deleteTx('${t.id}','${type}')">🗑</button>`;
+    item.querySelector('.tx-item-content').onclick=()=>openTxModal(t,type);
     wrap.appendChild(item);
   });
 }
@@ -1291,30 +1328,35 @@ async function renderTxList(type) {
     item.style.borderLeftColor=cat?cat.color:(isIncome?'#4ade80':'#f87171');
     item.innerHTML=`
       ${cat?`<span class="todo-inline-cat" style="background:${cat.color}">${esc(cat.name)}</span>`:''}
-      <div class="tx-item-memo ${t.memo?'':'empty'}">${t.memo||'메모 없음'}</div>
+      <div class="tx-item-content">
+        <div class="tx-item-title">${esc(t.title||'제목 없음')}</div>
+        ${t.memo?`<div class="tx-item-memo-preview">${esc(t.memo)}</div>`:''}
+      </div>
       <div class="tx-item-amount ${type}">${fmtAmt(t.amount)}</div>
       <button class="tx-item-del" onclick="deleteTx('${t.id}','${type}')">🗑</button>`;
+    item.querySelector('.tx-item-content').onclick=()=>openTxModal(t,type);
     wrap.appendChild(item);
   });
 }
 
 async function addTransaction(type) {
+  const titleInput=document.getElementById(`${type}-title-input`);
   const amtInput=document.getElementById(`${type}-amount-input`);
-  const memoInput=document.getElementById(`${type}-memo-input`);
+  const title=titleInput.value.trim();
   const amount=parseInt(amtInput.value);
-  if(!amount||amount<=0){ toast('금액을 입력해주세요'); return; }
-  const memo=memoInput.value.trim();
+  if(!title){ toast('제목을 입력해주세요'); titleInput.focus(); return; }
+  if(!amount||amount<=0){ toast('금액을 입력해주세요'); amtInput.focus(); return; }
   const activeCat=activeTxCatFilter[type];
   sync('syncing');
-  const {error}=await sb.from('transactions').insert({
+  const {data,error}=await sb.from('transactions').insert({
     user_id:currentUser.id,
     date:ds(getTxDate(type)),
-    type, amount, memo,
+    type, amount, memo:'', title,
     cat_id:activeCat||''
-  });
+  }).select().single();
   sync('ok');
   if(error){ toast('❌ 저장 실패'); return; }
-  amtInput.value=''; memoInput.value='';
+  titleInput.value=''; amtInput.value='';
   renderTxView(type);
   toast(`${type==='income'?'💰 수입':'💸 지출'} 추가됐어요!`);
 }
@@ -1326,6 +1368,49 @@ async function deleteTx(id, type) {
   sync('ok');
   renderTxView(type);
   toast('🗑 삭제됐어요');
+}
+
+// ── TX 상세 모달 ──
+let editingTxId=null, editingTxType=null, selectedTxModalCat='';
+function openTxModal(t, type) {
+  editingTxId=t.id; editingTxType=type;
+  selectedTxModalCat=t.cat_id||'';
+  document.getElementById('tx-modal-title-input').value=t.title||'';
+  document.getElementById('tx-modal-amount-input').value=t.amount||'';
+  document.getElementById('tx-modal-memo-input').value=t.memo||'';
+  renderTxModalCats(type);
+  document.getElementById('tx-modal-overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('tx-modal-title-input').focus(),100);
+}
+function closeTxModal() { document.getElementById('tx-modal-overlay').classList.remove('open'); editingTxId=null; editingTxType=null; }
+function renderTxModalCats(type) {
+  const wrap=document.getElementById('tx-modal-cat-list'); wrap.innerHTML='';
+  const none=document.createElement('div');
+  none.className='m-cat-none'+(selectedTxModalCat===''?' selected':'');
+  none.textContent='없음'; none.onclick=()=>{selectedTxModalCat='';renderTxModalCats(type);};
+  wrap.appendChild(none);
+  getTxCats(type).forEach(cat=>{
+    const chip=document.createElement('div');
+    chip.className='m-cat-chip'+(selectedTxModalCat===cat.id?' selected':'');
+    chip.style.background=cat.color; chip.textContent=cat.name;
+    chip.onclick=()=>{selectedTxModalCat=cat.id;renderTxModalCats(type);};
+    wrap.appendChild(chip);
+  });
+}
+async function saveTxModal() {
+  if(!editingTxId) return;
+  const title=document.getElementById('tx-modal-title-input').value.trim();
+  const amount=parseInt(document.getElementById('tx-modal-amount-input').value);
+  const memo=document.getElementById('tx-modal-memo-input').value;
+  if(!title){ toast('제목을 입력해주세요'); return; }
+  if(!amount||amount<=0){ toast('금액을 입력해주세요'); return; }
+  const type=editingTxType;
+  sync('syncing');
+  await sb.from('transactions').update({title,amount,memo,cat_id:selectedTxModalCat}).eq('id',editingTxId);
+  sync('ok');
+  closeTxModal();
+  renderTxView(type);
+  toast('✅ 저장됐어요');
 }
 
 // ── 수입/지출 카테고리 모달 ──
@@ -1374,8 +1459,8 @@ document.getElementById('expense-prev-day').onclick=()=>{txExpenseDate.setDate(t
 document.getElementById('expense-next-day').onclick=()=>{txExpenseDate.setDate(txExpenseDate.getDate()+1);renderTxView('expense');};
 
 // Enter 키
-document.getElementById('income-memo-input').addEventListener('keydown',e=>{if(e.key==='Enter')addTransaction('income');});
-document.getElementById('expense-memo-input').addEventListener('keydown',e=>{if(e.key==='Enter')addTransaction('expense');});
+document.getElementById('income-title-input').addEventListener('keydown',e=>{if(e.key==='Enter')addTransaction('income');});
+document.getElementById('expense-title-input').addEventListener('keydown',e=>{if(e.key==='Enter')addTransaction('expense');});
 
 // ── Sidebar ──
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('sidebar-overlay').classList.toggle('open'); }
@@ -1386,7 +1471,7 @@ window.addEventListener('resize',()=>{ if(!isMob()) closeSidebar(); });
 document.getElementById('new-todo-input').addEventListener('keydown',e=>{if(e.key==='Enter')addTodo();});
 document.getElementById('login-pw').addEventListener('keydown',e=>{if(e.key==='Enter')submitAuth();});
 document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'){closeModal();closeCatModal();}
+  if(e.key==='Escape'){closeModal();closeCatModal();closeTxModal();}
   if(e.key==='z'&&(e.ctrlKey||e.metaKey)){e.preventDefault();undo();}
 });
 
