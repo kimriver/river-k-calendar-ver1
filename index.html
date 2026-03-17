@@ -898,6 +898,26 @@ window.addEventListener('beforeunload', () => {
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
+// ── 메뉴 순서 즉시 적용 (페이지 로드 시) ──
+// 함수 선언 전이라 인라인으로 처리
+(function() {
+  try {
+    const saved = localStorage.getItem('rkt-menu-order');
+    if(!saved) return;
+    const ids = JSON.parse(saved);
+    const headerRight = document.getElementById('header-right');
+    const sidebarNav = document.getElementById('sidebar-nav');
+    const logoutBtn = document.getElementById('logout-btn');
+    const settingsBtn = document.getElementById('settings-btn');
+    ids.forEach(id => {
+      const hBtn = document.getElementById(`hnav-${id}`);
+      if(hBtn && logoutBtn) headerRight.insertBefore(hBtn, logoutBtn);
+      const sBtn = document.getElementById(`snav-${id}`);
+      if(sBtn) sidebarNav.appendChild(sBtn);
+    });
+  } catch(e) {}
+})();
+
 // ── State ──
 let currentDate = new Date();
 let todos = [];
@@ -2262,6 +2282,8 @@ sb.auth.onAuthStateChange(async(event,session)=>{
     await loadTxCats('expense');
     await loadEvCats();
     await loadTodos();
+    loadMenuOrder();
+    applyMenuOrder();
     renderCatFilter();
     renderMiniCal();
     document.getElementById('loading-screen').classList.add('hidden');
