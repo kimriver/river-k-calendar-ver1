@@ -245,6 +245,28 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
 #tx-cat-add-row { display:flex; align-items:center; gap:8px; padding:10px 12px; border:1px dashed var(--border); border-radius:8px; color:var(--text3); cursor:pointer; font-size:13px; transition:all 0.15s; margin-top:8px; }
 #tx-cat-add-row:hover { border-color:var(--accent); color:var(--accent2); }
 
+/* ── 대시보드 ── */
+.dash-wrap { flex:1; overflow-y:auto; padding:20px 22px; display:flex; flex-direction:column; gap:14px; }
+.dash-greeting { font-size:20px; font-weight:700; color:var(--text); }
+.dash-date { font-family:'Space Mono',monospace; font-size:11px; color:var(--text3); margin-top:2px; margin-bottom:4px; }
+.dash-section { background:var(--bg2); border:1px solid var(--border); border-radius:14px; padding:16px 18px; cursor:pointer; transition:all 0.2s; }
+.dash-section:hover { background:var(--bg3); border-color:var(--accent); }
+.dash-section-header { display:flex; align-items:center; gap:8px; margin-bottom:12px; }
+.dash-section-icon { font-size:18px; }
+.dash-section-title { font-size:15px; font-weight:600; color:var(--text); flex:1; }
+.dash-section-arrow { color:var(--text3); font-size:18px; }
+.dash-stats-row { display:flex; gap:10px; margin-bottom:12px; }
+.dash-stat { flex:1; background:var(--bg3); border-radius:10px; padding:10px 14px; text-align:center; }
+.dash-stat-label { font-size:10px; color:var(--text3); margin-bottom:4px; font-family:'Space Mono',monospace; }
+.dash-stat-value { font-size:18px; font-weight:700; font-family:'Space Mono',monospace; color:var(--text); }
+.dash-cats { display:flex; flex-wrap:wrap; gap:6px; }
+.dash-cat-chip { padding:3px 10px; border-radius:20px; font-size:11px; color:#fff; font-weight:600; }
+.dash-event-list { display:flex; flex-direction:column; gap:6px; margin-bottom:10px; }
+.dash-event-item { display:flex; align-items:center; gap:8px; padding:6px 10px; background:var(--bg3); border-radius:8px; border-left:3px solid #f59e0b; }
+.dash-event-item-title { font-size:13px; color:var(--text); flex:1; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.dash-event-item-date { font-size:10px; color:var(--text3); font-family:'Space Mono',monospace; flex-shrink:0; }
+.dash-empty { font-size:12px; color:var(--text3); text-align:center; padding:8px 0; }
+
 /* ── 일정 ── */
 .ev-header { padding:16px 22px 12px; border-bottom:1px solid var(--border); flex-shrink:0; }
 .ev-header-top { display:flex; align-items:center; justify-content:space-between; }
@@ -416,6 +438,7 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
       <div id="sync-dot"></div>
     </div>
     <div id="header-right">
+      <button class="hnav-btn" id="hnav-dash" onclick="switchView('dash')">🏠 홈</button>
       <button class="hnav-btn active" id="hnav-todo" onclick="switchView('todo')">📋 목록</button>
       <button class="hnav-btn" id="hnav-cal" onclick="switchView('cal')">📅 달력</button>
       <button class="hnav-btn" id="hnav-event" onclick="switchView('event')">🗓 일정</button>
@@ -437,6 +460,7 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
         <div class="mini-grid" id="mini-grid"></div>
       </div>
       <div id="sidebar-nav">
+        <button class="snav-btn" id="snav-dash" onclick="switchView('dash');closeSidebar()">🏠 홈</button>
         <button class="snav-btn active" id="snav-todo" onclick="switchView('todo');closeSidebar()">📋 할 일 목록</button>
         <button class="snav-btn" id="snav-cal" onclick="switchView('cal');closeSidebar()">📅 월간 달력</button>
         <button class="snav-btn" id="snav-event" onclick="switchView('event');closeSidebar()">🗓 일정</button>
@@ -446,6 +470,89 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
     </div>
 
     <div id="main">
+      <!-- Dashboard View -->
+      <div class="view" id="view-dash">
+        <div class="dash-wrap">
+          <div class="dash-greeting" id="dash-greeting"></div>
+          <div class="dash-date" id="dash-date"></div>
+
+          <!-- 할 일 섹션 -->
+          <div class="dash-section" onclick="switchView('todo')">
+            <div class="dash-section-header">
+              <span class="dash-section-icon">📋</span>
+              <span class="dash-section-title">오늘의 할 일</span>
+              <span class="dash-section-arrow">›</span>
+            </div>
+            <div class="dash-stats-row">
+              <div class="dash-stat">
+                <div class="dash-stat-label">전체</div>
+                <div class="dash-stat-value" id="dash-total">0</div>
+              </div>
+              <div class="dash-stat">
+                <div class="dash-stat-label">완료</div>
+                <div class="dash-stat-value" style="color:var(--green)" id="dash-done">0</div>
+              </div>
+              <div class="dash-stat">
+                <div class="dash-stat-label">남은</div>
+                <div class="dash-stat-value" style="color:var(--accent2)" id="dash-remain">0</div>
+              </div>
+            </div>
+            <div class="dash-cats" id="dash-todo-cats"></div>
+          </div>
+
+          <!-- 일정 섹션 -->
+          <div class="dash-section" onclick="switchView('event')">
+            <div class="dash-section-header">
+              <span class="dash-section-icon">🗓</span>
+              <span class="dash-section-title">오늘의 일정</span>
+              <span class="dash-section-arrow">›</span>
+            </div>
+            <div class="dash-event-list" id="dash-event-list"></div>
+            <div class="dash-cats" id="dash-event-cats"></div>
+          </div>
+
+          <!-- 수입 섹션 -->
+          <div class="dash-section" onclick="switchView('income')">
+            <div class="dash-section-header">
+              <span class="dash-section-icon">💰</span>
+              <span class="dash-section-title">수입</span>
+              <span class="dash-section-arrow">›</span>
+            </div>
+            <div class="dash-stats-row">
+              <div class="dash-stat">
+                <div class="dash-stat-label">이번 달</div>
+                <div class="dash-stat-value income-color" id="dash-income-month">₩0</div>
+              </div>
+              <div class="dash-stat">
+                <div class="dash-stat-label">오늘</div>
+                <div class="dash-stat-value income-color" id="dash-income-today">₩0</div>
+              </div>
+            </div>
+            <div class="dash-cats" id="dash-income-cats"></div>
+          </div>
+
+          <!-- 지출 섹션 -->
+          <div class="dash-section" onclick="switchView('expense')">
+            <div class="dash-section-header">
+              <span class="dash-section-icon">💸</span>
+              <span class="dash-section-title">지출</span>
+              <span class="dash-section-arrow">›</span>
+            </div>
+            <div class="dash-stats-row">
+              <div class="dash-stat">
+                <div class="dash-stat-label">이번 달</div>
+                <div class="dash-stat-value expense-color" id="dash-expense-month">₩0</div>
+              </div>
+              <div class="dash-stat">
+                <div class="dash-stat-label">오늘</div>
+                <div class="dash-stat-value expense-color" id="dash-expense-today">₩0</div>
+              </div>
+            </div>
+            <div class="dash-cats" id="dash-expense-cats"></div>
+          </div>
+        </div>
+      </div>
+
       <!-- Todo View -->
       <div class="view active" id="view-todo">
         <div id="todo-header">
@@ -1383,8 +1490,15 @@ document.getElementById('cal-next').onclick=()=>{calViewDate.setMonth(calViewDat
 // ── View switch ──
 function switchView(v) {
   document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
-  ['hnav-todo','hnav-cal','hnav-event','hnav-income','hnav-expense','snav-todo','snav-cal','snav-event','snav-income','snav-expense'].forEach(id=>document.getElementById(id)?.classList.remove('active'));
-  if(v==='todo'){
+  ['hnav-dash','hnav-todo','hnav-cal','hnav-event','hnav-income','hnav-expense',
+   'snav-dash','snav-todo','snav-cal','snav-event','snav-income','snav-expense']
+    .forEach(id=>document.getElementById(id)?.classList.remove('active'));
+  if(v==='dash'){
+    document.getElementById('view-dash').classList.add('active');
+    document.getElementById('hnav-dash').classList.add('active');
+    document.getElementById('snav-dash').classList.add('active');
+    renderDash();
+  } else if(v==='todo'){
     document.getElementById('view-todo').classList.add('active');
     document.getElementById('hnav-todo').classList.add('active');
     document.getElementById('snav-todo').classList.add('active');
@@ -1425,7 +1539,110 @@ function getTxDate(type) { return type==='income' ? txIncomeDate : txExpenseDate
 function getTxCats(type) { return type==='income' ? txIncomeCats : txExpenseCats; }
 function gcTx(type, id) { return getTxCats(type).find(c=>c.id===id)||null; }
 
-// ── 일정 State ──
+// ── Dashboard ──
+async function renderDash() {
+  const now=new Date();
+  const hours=now.getHours();
+  const greeting=hours<6?'🌙 새벽이에요':hours<12?'🌅 좋은 아침이에요':hours<18?'☀️ 좋은 오후예요':'🌆 좋은 저녁이에요';
+  document.getElementById('dash-greeting').textContent=greeting;
+  document.getElementById('dash-date').textContent=fmtDate(now);
+
+  const todayStr2=ds(now);
+  const y=now.getFullYear(), m=now.getMonth()+1;
+  const from=`${y}-${String(m).padStart(2,'0')}-01`;
+  const to=`${y}-${String(m).padStart(2,'0')}-31`;
+
+  // 할 일 통계
+  const todayTodos=todos.filter(t=>ds(currentDate)===todayStr2?true:false);
+  const allTodos=todos;
+  const total=allTodos.length, done=allTodos.filter(t=>t.done).length;
+  document.getElementById('dash-total').textContent=total;
+  document.getElementById('dash-done').textContent=done;
+  document.getElementById('dash-remain').textContent=total-done;
+
+  // 할 일 카테고리
+  const todoCatEl=document.getElementById('dash-todo-cats');
+  todoCatEl.innerHTML='';
+  const usedCatIds=[...new Set(allTodos.map(t=>t.cat_id).filter(Boolean))];
+  if(usedCatIds.length){
+    usedCatIds.forEach(cid=>{
+      const cat=gc(cid); if(!cat) return;
+      const cnt=allTodos.filter(t=>t.cat_id===cid).length;
+      const chip=document.createElement('div');
+      chip.className='dash-cat-chip';
+      chip.style.background=cat.color;
+      chip.textContent=`${cat.name} ${cnt}`;
+      todoCatEl.appendChild(chip);
+    });
+  } else {
+    todoCatEl.innerHTML=`<div class="dash-empty">카테고리 없음</div>`;
+  }
+
+  // 오늘 일정
+  const {data:evData}=await sb.from('events').select('*').eq('user_id',currentUser.id)
+    .lte('start_date',todayStr2).gte('end_date',todayStr2).order('start_date');
+  const evList=evData||[];
+  const evListEl=document.getElementById('dash-event-list');
+  evListEl.innerHTML='';
+  if(evList.length){
+    evList.slice(0,3).forEach(ev=>{
+      const cat=evCats.find(c=>c.id===ev.cat_id);
+      const color=cat?cat.color:'#f59e0b';
+      const isSingle=ev.start_date===ev.end_date;
+      const dateStr=isSingle?ev.start_date:`${ev.start_date}~${ev.end_date}`;
+      const item=document.createElement('div');
+      item.className='dash-event-item';
+      item.style.borderLeftColor=color;
+      item.innerHTML=`<div class="dash-event-item-title">${esc(ev.title)}</div><div class="dash-event-item-date">${dateStr}</div>`;
+      evListEl.appendChild(item);
+    });
+  } else {
+    evListEl.innerHTML=`<div class="dash-empty">오늘 일정 없음</div>`;
+  }
+  // 일정 카테고리
+  const evCatEl=document.getElementById('dash-event-cats');
+  evCatEl.innerHTML='';
+  const usedEvCatIds=[...new Set(evList.map(e=>e.cat_id).filter(Boolean))];
+  usedEvCatIds.forEach(cid=>{
+    const cat=evCats.find(c=>c.id===cid); if(!cat) return;
+    const chip=document.createElement('div'); chip.className='dash-cat-chip'; chip.style.background=cat.color;
+    chip.textContent=cat.name; evCatEl.appendChild(chip);
+  });
+
+  // 수입/지출
+  const {data:txData}=await sb.from('transactions').select('*').eq('user_id',currentUser.id).gte('date',from).lte('date',to);
+  const txList=txData||[];
+  const incomeMonth=txList.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const incomeToday=txList.filter(t=>t.type==='income'&&t.date===todayStr2).reduce((s,t)=>s+t.amount,0);
+  const expenseMonth=txList.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const expenseToday=txList.filter(t=>t.type==='expense'&&t.date===todayStr2).reduce((s,t)=>s+t.amount,0);
+  document.getElementById('dash-income-month').textContent=fmtAmt(incomeMonth);
+  document.getElementById('dash-income-today').textContent=fmtAmt(incomeToday);
+  document.getElementById('dash-expense-month').textContent=fmtAmt(expenseMonth);
+  document.getElementById('dash-expense-today').textContent=fmtAmt(expenseToday);
+
+  // 수입 카테고리
+  const incomeCatEl=document.getElementById('dash-income-cats');
+  incomeCatEl.innerHTML='';
+  const usedIncCatIds=[...new Set(txList.filter(t=>t.type==='income').map(t=>t.cat_id).filter(Boolean))];
+  usedIncCatIds.forEach(cid=>{
+    const cat=gcTx('income',cid); if(!cat) return;
+    const amt=txList.filter(t=>t.type==='income'&&t.cat_id===cid).reduce((s,t)=>s+t.amount,0);
+    const chip=document.createElement('div'); chip.className='dash-cat-chip'; chip.style.background=cat.color;
+    chip.textContent=`${cat.name} ${fmtAmt(amt)}`; incomeCatEl.appendChild(chip);
+  });
+
+  // 지출 카테고리
+  const expenseCatEl=document.getElementById('dash-expense-cats');
+  expenseCatEl.innerHTML='';
+  const usedExpCatIds=[...new Set(txList.filter(t=>t.type==='expense').map(t=>t.cat_id).filter(Boolean))];
+  usedExpCatIds.forEach(cid=>{
+    const cat=gcTx('expense',cid); if(!cat) return;
+    const amt=txList.filter(t=>t.type==='expense'&&t.cat_id===cid).reduce((s,t)=>s+t.amount,0);
+    const chip=document.createElement('div'); chip.className='dash-cat-chip'; chip.style.background=cat.color;
+    chip.textContent=`${cat.name} ${fmtAmt(amt)}`; expenseCatEl.appendChild(chip);
+  });
+}
 let evViewDate = new Date();
 let evCats = [];
 let editingEvCats = [];
