@@ -500,10 +500,10 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
       <!-- Event View -->
       <div class="view" id="view-event">
         <div style="padding:16px 22px 10px; border-bottom:1px solid var(--border); flex-shrink:0;">
-          <div style="font-family:'Space Mono',monospace; font-size:10px; color:var(--text3); letter-spacing:2px; text-transform:uppercase; margin-bottom:4px;">SCHEDULE</div>
+          <div id="ev-date-label" style="font-family:'Space Mono',monospace; font-size:10px; color:var(--text3); letter-spacing:2px; text-transform:uppercase; margin-bottom:4px;">SCHEDULE</div>
           <div style="font-size:22px; font-weight:700; color:var(--text); display:flex; align-items:center; gap:10px;">
             <button class="date-nav" id="event-prev">‹</button>
-            <span id="event-month-label"></span>
+            <span id="event-date-display"></span>
             <button class="date-nav" id="event-next">›</button>
           </div>
         </div>
