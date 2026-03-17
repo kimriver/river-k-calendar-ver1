@@ -1409,4 +1409,502 @@ let currentTxCatType = '';
 
 function fmtAmt(n) { return '₩'+n.toLocaleString('ko-KR'); }
 function getTxDate(type) { return type==='income' ? txIncomeDate : txExpenseDate; }
-function getTxCats(type) { retur
+function getTxCats(type) { return type==='income' ? txIncomeCats : txExpenseCats; }
+function gcTx(type, id) { return getTxCats(type).find(c=>c.id===id)||null; }
+
+// ── 일정 State ──
+let evViewDate = new Date();
+let evCats = [];
+let editingEvCats = [];
+let activeEvCatFilter = '';
+let editingEvId = null;
+let selectedEvModalCat = '';
+
+async function loadEvCats() {
+  if(!currentUser) return;
+  const {data}=await sb.from('event_categories').select('*').eq('user_id',currentUser.id).order('created_at');
+  evCats=data||[];
+}
+
+async function loadEvents(y, m) {
+  if(!currentUser) return [];
+  const from=`${y}-${String(m+1).padStart(2,'0')}-01`;
+  const to=`${y}-${String(m+1).padStart(2,'0')}-31`;
+  const {data}=await sb.from('events').select('*').eq('user_id',currentUser.id)
+    .lte('start_date',to).gte('end_date',from).order('start_date');
+  return data||[];
+}
+
+async function renderEvView() {
+  const y=evViewDate.getFullYear(), m=evViewDate.getMonth();
+  document.getElementById('event-month-label').textContent=`${y}년 ${m+1}월`;
+  await loadEvCats();
+  renderEvCatFilter();
+  const list=await loadEvents(y,m);
+  const filtered=activeEvCatFilter===''?list:list.filter(e=>e.cat_id===activeEvCatFilter);
+  const wrap=document.getElementById('event-list');
+  if(!filtered.length){
+    wrap.innerHTML=`<div class="tx-empty"><div class="emoji">🗓</div><p>일정을 추가해보세요!</p></div>`;
+    return;
+  }
+  wrap.innerHTML='';
+  filtered.forEach(ev=>{
+    const cat=evCats.find(c=>c.id===ev.cat_id);
+    const color=cat?cat.color:'#f59e0b';
+    const item=document.createElement('div');
+    item.className='ev-item';
+    item.style.borderLeftColor=color;
+    const isSingle=ev.start_date===ev.end_date;
+    const dateStr=isSingle?ev.start_date:`${ev.start_date} ~ ${ev.end_date}`;
+    item.innerHTML=`
+      ${cat?`<span class="todo-inline-cat" style="background:${cat.color}">${esc(cat.name)}</span>`:''}
+      <div class="ev-item-content">
+        <div class="ev-item-title">${esc(ev.title)}</div>
+        <div class="ev-item-dates">📅 ${dateStr}</div>
+        ${ev.memo?`<div class="tx-item-memo-preview">${esc(ev.memo)}</div>`:''}
+      </div>
+      <button class="ev-item-del" onclick="deleteEv('${ev.id}')">🗑</button>`;
+    item.querySelector('.ev-item-content').onclick=()=>openEvModal(ev);
+    wrap.appendChild(item);
+  });
+}
+
+function renderEvCatFilter() {
+  const bar=document.getElementById('event-cat-filter-bar');
+  bar.querySelectorAll('.cat-filter-chip').forEach(el=>el.remove());
+  const mgr=bar.querySelector('.cat-manage-btn');
+  const all=document.createElement('div');
+  all.className='cat-filter-chip'+(activeEvCatFilter===''?' active':'');
+  all.textContent='전체';
+  if(activeEvCatFilter==='') all.style.cssText='background:var(--accent);color:#fff;border-color:var(--accent)';
+  all.onclick=()=>{activeEvCatFilter='';renderEvCatFilter();renderEvView();};
+  bar.insertBefore(all,mgr);
+  evCats.forEach(cat=>{
+    const a=activeEvCatFilter===cat.id;
+    const chip=document.createElement('div');
+    chip.className='cat-filter-chip'+(a?' active':'');
+    chip.textContent=cat.name;
+    chip.style.cssText=a?`background:${cat.color};color:#fff;border-color:${cat.color}`:`border-left:3px solid ${cat.color}`;
+    chip.onclick=()=>{activeEvCatFilter=cat.id;renderEvCatFilter();renderEvView();};
+    bar.insertBefore(chip,mgr);
+  });
+}
+
+function openAddEventModal() {
+  const titleInput=document.getElementById('event-title-input');
+  editingEvId=null; selectedEvModalCat='';
+  document.getElementById('ev-modal-title-input').value=titleInput.value.trim();
+  document.getElementById('ev-modal-start-input').value=ds(new Date());
+  document.getElementById('ev-modal-end-input').value=ds(new Date());
+  document.getElementById('ev-modal-memo-input').value='';
+  renderEvModalCats();
+  document.getElementById('ev-modal-overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('ev-modal-title-input').focus(),100);
+}
+
+function openEvModal(ev) {
+  editingEvId=ev.id; selectedEvModalCat=ev.cat_id||'';
+  document.getElementById('ev-modal-title-input').value=ev.title;
+  document.getElementById('ev-modal-start-input').value=ev.start_date;
+  document.getElementById('ev-modal-end-input').value=ev.end_date;
+  document.getElementById('ev-modal-memo-input').value=ev.memo||'';
+  renderEvModalCats();
+  document.getElementById('ev-modal-overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('ev-modal-title-input').focus(),100);
+}
+
+function closeEvModal() { document.getElementById('ev-modal-overlay').classList.remove('open'); editingEvId=null; }
+
+function renderEvModalCats() {
+  const wrap=document.getElementById('ev-modal-cat-list'); wrap.innerHTML='';
+  const none=document.createElement('div');
+  none.className='m-cat-none'+(selectedEvModalCat===''?' selected':'');
+  none.textContent='없음'; none.onclick=()=>{selectedEvModalCat='';renderEvModalCats();};
+  wrap.appendChild(none);
+  evCats.forEach(cat=>{
+    const chip=document.createElement('div');
+    chip.className='m-cat-chip'+(selectedEvModalCat===cat.id?' selected':'');
+    chip.style.background=cat.color; chip.textContent=cat.name;
+    chip.onclick=()=>{selectedEvModalCat=cat.id;renderEvModalCats();};
+    wrap.appendChild(chip);
+  });
+}
+
+async function saveEvModal() {
+  const title=document.getElementById('ev-modal-title-input').value.trim();
+  const startDate=document.getElementById('ev-modal-start-input').value;
+  const endDate=document.getElementById('ev-modal-end-input').value;
+  const memo=document.getElementById('ev-modal-memo-input').value;
+  if(!title){ toast('제목을 입력해주세요'); return; }
+  if(!startDate||!endDate){ toast('날짜를 입력해주세요'); return; }
+  if(endDate<startDate){ toast('종료일이 시작일보다 빠를 수 없어요'); return; }
+  sync('syncing');
+  if(editingEvId){
+    await sb.from('events').update({title,start_date:startDate,end_date:endDate,memo,cat_id:selectedEvModalCat}).eq('id',editingEvId);
+  } else {
+    await sb.from('events').insert({user_id:currentUser.id,title,start_date:startDate,end_date:endDate,memo,cat_id:selectedEvModalCat});
+    document.getElementById('event-title-input').value='';
+  }
+  sync('ok');
+  closeEvModal();
+  renderEvView();
+  toast(editingEvId?'✅ 일정 수정됐어요!':'✅ 일정 추가됐어요!');
+}
+
+async function deleteEv(id) {
+  if(!confirm('일정을 삭제할까요?')) return;
+  sync('syncing');
+  await sb.from('events').delete().eq('id',id);
+  sync('ok');
+  renderEvView();
+  toast('🗑 삭제됐어요');
+}
+
+// ── 일정 카테고리 모달 ──
+function openEvCatModal() {
+  editingEvCats=evCats.map(c=>({...c}));
+  renderEvCatEditor();
+  document.getElementById('ev-cat-modal-overlay').classList.add('open');
+}
+function closeEvCatModal() { document.getElementById('ev-cat-modal-overlay').classList.remove('open'); closeCp(); }
+function renderEvCatEditor() {
+  const wrap=document.getElementById('ev-cat-list-editor'); wrap.innerHTML='';
+  editingEvCats.forEach((cat,i)=>{
+    const row=document.createElement('div'); row.className='cat-row';
+    row.innerHTML=`<div class="cat-dot" style="background:${cat.color}" data-i="${i}"></div><input class="cat-name-inp" type="text" value="${esc(cat.name)}" placeholder="카테고리 이름" maxlength="20"><button class="cat-del">🗑</button>`;
+    row.querySelector('.cat-dot').addEventListener('click',e=>{e.stopPropagation();openCp(e,i,'ev');});
+    row.querySelector('.cat-name-inp').addEventListener('input',e=>{editingEvCats[i].name=e.target.value;});
+    row.querySelector('.cat-del').addEventListener('click',()=>{editingEvCats.splice(i,1);renderEvCatEditor();});
+    wrap.appendChild(row);
+  });
+}
+function addEvCatRow() {
+  editingEvCats.push({id:uid(),name:'',color:COLORS[editingEvCats.length%COLORS.length]});
+  renderEvCatEditor();
+  const ins=document.querySelectorAll('#ev-cat-list-editor .cat-name-inp');
+  if(ins.length) ins[ins.length-1].focus();
+}
+async function saveEvCats() {
+  evCats=editingEvCats.filter(c=>c.name.trim()!=='').map(c=>({...c,name:c.name.trim()}));
+  await sb.from('event_categories').delete().eq('user_id',currentUser.id);
+  if(evCats.length) await sb.from('event_categories').insert(evCats.map(c=>({id:c.id,user_id:currentUser.id,name:c.name,color:c.color})));
+  closeEvCatModal(); renderEvCatFilter(); renderEvView();
+  toast('✅ 카테고리 저장됐어요');
+}
+
+document.getElementById('event-prev').onclick=()=>{evViewDate.setMonth(evViewDate.getMonth()-1);renderEvView();};
+document.getElementById('event-next').onclick=()=>{evViewDate.setMonth(evViewDate.getMonth()+1);renderEvView();};
+document.getElementById('event-title-input').addEventListener('keydown',e=>{if(e.key==='Enter')openAddEventModal();});
+
+async function loadTxCats(type) {
+  if(!currentUser) return;
+  const {data}=await sb.from('transaction_categories').select('*').eq('user_id',currentUser.id).eq('type',type).order('created_at');
+  if(type==='income') txIncomeCats=data||[];
+  else txExpenseCats=data||[];
+}
+
+async function loadTransactions(type) {
+  if(!currentUser) return [];
+  const d=getTxDate(type);
+  const y=d.getFullYear(), m=d.getMonth()+1;
+  const from=`${y}-${String(m).padStart(2,'0')}-01`;
+  const to=`${y}-${String(m).padStart(2,'0')}-31`;
+  const {data}=await sb.from('transactions').select('*')
+    .eq('user_id',currentUser.id).eq('type',type)
+    .gte('date',from).lte('date',to)
+    .order('date',{ascending:false}).order('created_at',{ascending:false});
+  return data||[];
+}
+
+async function renderTxView(type) {
+  const d=getTxDate(type);
+  const dayStr=ds(d);
+  document.getElementById(`${type}-date-display`).textContent=fmtDate(d);
+
+  await loadTxCats(type);
+  renderTxCatFilter(type);
+
+  const allList=await loadTransactions(type);
+  const dayList=allList.filter(t=>t.date===dayStr);
+  const monthTotal=allList.reduce((s,t)=>s+t.amount,0);
+  const dayTotal=dayList.reduce((s,t)=>s+t.amount,0);
+  document.getElementById(`${type}-month-total`).textContent=fmtAmt(monthTotal);
+  document.getElementById(`${type}-day-total`).textContent=fmtAmt(dayTotal);
+
+  // 카테고리 필터 적용
+  const activeCat=activeTxCatFilter[type];
+  const filtered=activeCat===''?dayList:dayList.filter(t=>t.cat_id===activeCat);
+
+  const wrap=document.getElementById(`${type}-list`);
+  const isIncome=type==='income';
+  if(!filtered.length){
+    wrap.innerHTML=`<div class="tx-empty"><div class="emoji">${isIncome?'💰':'💸'}</div><p>${activeCat?'이 카테고리에 내역이 없어요':(isIncome?'수입 내역을 추가해보세요!':'지출 내역을 추가해보세요!')}</p></div>`;
+    return;
+  }
+  wrap.innerHTML='';
+  filtered.forEach(t=>{
+    const cat=gcTx(type,t.cat_id);
+    const item=document.createElement('div');
+    item.className=`tx-item tx-item-${type}`;
+    item.style.borderLeftColor=cat?cat.color:(isIncome?'#4ade80':'#f87171');
+    item.innerHTML=`
+      ${cat?`<span class="todo-inline-cat" style="background:${cat.color}">${esc(cat.name)}</span>`:''}
+      <div class="tx-item-content">
+        <div class="tx-item-title">${esc(t.title||'제목 없음')}</div>
+        ${t.memo?`<div class="tx-item-memo-preview">${esc(t.memo)}</div>`:''}
+      </div>
+      <div class="tx-item-amount ${type}">${fmtAmt(t.amount)}</div>
+      <button class="tx-item-del" onclick="deleteTx('${t.id}','${type}')">🗑</button>`;
+    item.querySelector('.tx-item-content').onclick=()=>openTxModal(t,type);
+    wrap.appendChild(item);
+  });
+}
+
+function renderTxCatFilter(type) {
+  const bar=document.getElementById(`${type}-cat-filter-bar`);
+  bar.querySelectorAll('.cat-filter-chip').forEach(el=>el.remove());
+  const mgr=bar.querySelector('.cat-manage-btn');
+  const cats=getTxCats(type);
+  const active=activeTxCatFilter[type];
+
+  const all=document.createElement('div');
+  all.className='cat-filter-chip'+(active===''?' active':'');
+  all.textContent='전체';
+  if(active==='') all.style.cssText='background:var(--accent);color:#fff;border-color:var(--accent)';
+  all.onclick=()=>{activeTxCatFilter[type]='';renderTxCatFilter(type);renderTxList(type);};
+  bar.insertBefore(all,mgr);
+
+  cats.forEach(cat=>{
+    const a=active===cat.id;
+    const chip=document.createElement('div');
+    chip.className='cat-filter-chip'+(a?' active':'');
+    chip.textContent=cat.name;
+    chip.style.cssText=a?`background:${cat.color};color:#fff;border-color:${cat.color}`:`border-left:3px solid ${cat.color}`;
+    chip.onclick=()=>{activeTxCatFilter[type]=cat.id;renderTxCatFilter(type);renderTxList(type);};
+    bar.insertBefore(chip,mgr);
+  });
+}
+
+async function renderTxList(type) {
+  const d=getTxDate(type);
+  const dayStr=ds(d);
+  const allList=await loadTransactions(type);
+  const dayList=allList.filter(t=>t.date===dayStr);
+  const activeCat=activeTxCatFilter[type];
+  const filtered=activeCat===''?dayList:dayList.filter(t=>t.cat_id===activeCat);
+  const isIncome=type==='income';
+  const wrap=document.getElementById(`${type}-list`);
+  if(!filtered.length){
+    wrap.innerHTML=`<div class="tx-empty"><div class="emoji">${isIncome?'💰':'💸'}</div><p>${activeCat?'이 카테고리에 내역이 없어요':(isIncome?'수입 내역을 추가해보세요!':'지출 내역을 추가해보세요!')}</p></div>`;
+    return;
+  }
+  wrap.innerHTML='';
+  filtered.forEach(t=>{
+    const cat=gcTx(type,t.cat_id);
+    const item=document.createElement('div');
+    item.className=`tx-item tx-item-${type}`;
+    item.style.borderLeftColor=cat?cat.color:(isIncome?'#4ade80':'#f87171');
+    item.innerHTML=`
+      ${cat?`<span class="todo-inline-cat" style="background:${cat.color}">${esc(cat.name)}</span>`:''}
+      <div class="tx-item-content">
+        <div class="tx-item-title">${esc(t.title||'제목 없음')}</div>
+        ${t.memo?`<div class="tx-item-memo-preview">${esc(t.memo)}</div>`:''}
+      </div>
+      <div class="tx-item-amount ${type}">${fmtAmt(t.amount)}</div>
+      <button class="tx-item-del" onclick="deleteTx('${t.id}','${type}')">🗑</button>`;
+    item.querySelector('.tx-item-content').onclick=()=>openTxModal(t,type);
+    wrap.appendChild(item);
+  });
+}
+
+async function addTransaction(type) {
+  const titleInput=document.getElementById(`${type}-title-input`);
+  const amtInput=document.getElementById(`${type}-amount-input`);
+  const title=titleInput.value.trim();
+  const amount=parseInt(amtInput.value);
+  if(!title){ toast('제목을 입력해주세요'); titleInput.focus(); return; }
+  if(!amount||amount<=0){ toast('금액을 입력해주세요'); amtInput.focus(); return; }
+  const activeCat=activeTxCatFilter[type];
+  sync('syncing');
+  const {data,error}=await sb.from('transactions').insert({
+    user_id:currentUser.id,
+    date:ds(getTxDate(type)),
+    type, amount, memo:'', title,
+    cat_id:activeCat||''
+  }).select().single();
+  sync('ok');
+  if(error){ toast('❌ 저장 실패'); return; }
+  titleInput.value=''; amtInput.value='';
+  renderTxView(type);
+  toast(`${type==='income'?'💰 수입':'💸 지출'} 추가됐어요!`);
+}
+
+async function deleteTx(id, type) {
+  if(!confirm('삭제할까요?')) return;
+  sync('syncing');
+  await sb.from('transactions').delete().eq('id',id);
+  sync('ok');
+  renderTxView(type);
+  toast('🗑 삭제됐어요');
+}
+
+// ── TX 상세 모달 ──
+let editingTxId=null, editingTxType=null, selectedTxModalCat='';
+function openTxModal(t, type) {
+  editingTxId=t.id; editingTxType=type;
+  selectedTxModalCat=t.cat_id||'';
+  document.getElementById('tx-modal-title-input').value=t.title||'';
+  document.getElementById('tx-modal-amount-input').value=t.amount||'';
+  document.getElementById('tx-modal-memo-input').value=t.memo||'';
+  renderTxModalCats(type);
+  document.getElementById('tx-modal-overlay').classList.add('open');
+  setTimeout(()=>document.getElementById('tx-modal-title-input').focus(),100);
+}
+function closeTxModal() { document.getElementById('tx-modal-overlay').classList.remove('open'); editingTxId=null; editingTxType=null; }
+function renderTxModalCats(type) {
+  const wrap=document.getElementById('tx-modal-cat-list'); wrap.innerHTML='';
+  const none=document.createElement('div');
+  none.className='m-cat-none'+(selectedTxModalCat===''?' selected':'');
+  none.textContent='없음'; none.onclick=()=>{selectedTxModalCat='';renderTxModalCats(type);};
+  wrap.appendChild(none);
+  getTxCats(type).forEach(cat=>{
+    const chip=document.createElement('div');
+    chip.className='m-cat-chip'+(selectedTxModalCat===cat.id?' selected':'');
+    chip.style.background=cat.color; chip.textContent=cat.name;
+    chip.onclick=()=>{selectedTxModalCat=cat.id;renderTxModalCats(type);};
+    wrap.appendChild(chip);
+  });
+}
+async function saveTxModal() {
+  if(!editingTxId) return;
+  const title=document.getElementById('tx-modal-title-input').value.trim();
+  const amount=parseInt(document.getElementById('tx-modal-amount-input').value);
+  const memo=document.getElementById('tx-modal-memo-input').value;
+  if(!title){ toast('제목을 입력해주세요'); return; }
+  if(!amount||amount<=0){ toast('금액을 입력해주세요'); return; }
+  const type=editingTxType;
+  sync('syncing');
+  await sb.from('transactions').update({title,amount,memo,cat_id:selectedTxModalCat}).eq('id',editingTxId);
+  sync('ok');
+  closeTxModal();
+  renderTxView(type);
+  toast('✅ 저장됐어요');
+}
+
+// ── 수입/지출 카테고리 모달 ──
+function openTxCatModal(type) {
+  currentTxCatType=type;
+  editingTxCats=getTxCats(type).map(c=>({...c}));
+  renderTxCatEditor();
+  document.getElementById('tx-cat-modal-title').textContent=type==='income'?'💰 수입 카테고리':'💸 지출 카테고리';
+  document.getElementById('tx-cat-modal-overlay').classList.add('open');
+}
+function closeTxCatModal() { document.getElementById('tx-cat-modal-overlay').classList.remove('open'); closeCp(); }
+function renderTxCatEditor() {
+  const wrap=document.getElementById('tx-cat-list-editor'); wrap.innerHTML='';
+  editingTxCats.forEach((cat,i)=>{
+    const row=document.createElement('div'); row.className='cat-row';
+    row.innerHTML=`<div class="cat-dot" style="background:${cat.color}" data-i="${i}"></div><input class="cat-name-inp" type="text" value="${esc(cat.name)}" placeholder="카테고리 이름" maxlength="20"><button class="cat-del">🗑</button>`;
+    row.querySelector('.cat-dot').addEventListener('click',e=>{e.stopPropagation();openCp(e,i,true);});
+    row.querySelector('.cat-name-inp').addEventListener('input',e=>{editingTxCats[i].name=e.target.value;});
+    row.querySelector('.cat-del').addEventListener('click',()=>{editingTxCats.splice(i,1);renderTxCatEditor();});
+    wrap.appendChild(row);
+  });
+}
+function addTxCatRow() {
+  editingTxCats.push({id:uid(),name:'',color:COLORS[editingTxCats.length%COLORS.length],type:currentTxCatType});
+  renderTxCatEditor();
+  const ins=document.querySelectorAll('#tx-cat-list-editor .cat-name-inp');
+  if(ins.length) ins[ins.length-1].focus();
+}
+async function saveTxCats() {
+  const type=currentTxCatType;
+  const saved=editingTxCats.filter(c=>c.name.trim()!=='').map(c=>({...c,name:c.name.trim(),type}));
+  await sb.from('transaction_categories').delete().eq('user_id',currentUser.id).eq('type',type);
+  if(saved.length) await sb.from('transaction_categories').insert(saved.map(c=>({id:c.id,user_id:currentUser.id,name:c.name,color:c.color,type:c.type})));
+  if(type==='income') txIncomeCats=saved;
+  else txExpenseCats=saved;
+  closeTxCatModal();
+  renderTxCatFilter(type);
+  renderTxList(type);
+  toast('✅ 카테고리 저장됐어요');
+}
+
+// 날짜 이동
+document.getElementById('income-prev-day').onclick=()=>{txIncomeDate.setDate(txIncomeDate.getDate()-1);renderTxView('income');};
+document.getElementById('income-next-day').onclick=()=>{txIncomeDate.setDate(txIncomeDate.getDate()+1);renderTxView('income');};
+document.getElementById('expense-prev-day').onclick=()=>{txExpenseDate.setDate(txExpenseDate.getDate()-1);renderTxView('expense');};
+document.getElementById('expense-next-day').onclick=()=>{txExpenseDate.setDate(txExpenseDate.getDate()+1);renderTxView('expense');};
+
+// Enter 키
+document.getElementById('income-title-input').addEventListener('keydown',e=>{if(e.key==='Enter')addTransaction('income');});
+document.getElementById('expense-title-input').addEventListener('keydown',e=>{if(e.key==='Enter')addTransaction('expense');});
+
+// ── Sidebar ──
+function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('sidebar-overlay').classList.toggle('open'); }
+function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('open'); }
+window.addEventListener('resize',()=>{ if(!isMob()) closeSidebar(); });
+
+// ── Keyboard ──
+document.getElementById('new-todo-input').addEventListener('keydown',e=>{if(e.key==='Enter')addTodo();});
+document.getElementById('login-pw').addEventListener('keydown',e=>{if(e.key==='Enter')submitAuth();});
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){closeModal();closeCatModal();closeTxModal();closeEvModal();}
+  if(e.key==='z'&&(e.ctrlKey||e.metaKey)){e.preventDefault();undo();}
+});
+
+// ── Auth 초기화 ──
+const loadingTimeout = setTimeout(() => {
+  document.getElementById('loading-screen').classList.add('hidden');
+  document.getElementById('login-screen').classList.remove('hidden');
+}, 5000);
+
+(async()=>{
+  try {
+    const {data:{session}}=await sb.auth.getSession();
+    clearTimeout(loadingTimeout);
+    if(session?.user){
+      currentUser=session.user;
+      document.getElementById('login-screen').classList.add('hidden');
+      document.getElementById('app-screen').classList.remove('hidden');
+      try { await loadCategories(); } catch(e) { console.warn('loadCategories error',e); }
+      try { await loadTxCats('income'); } catch(e) { console.warn('loadTxCats income error',e); }
+      try { await loadTxCats('expense'); } catch(e) { console.warn('loadTxCats expense error',e); }
+      try { await loadEvCats(); } catch(e) { console.warn('loadEvCats error',e); }
+      try { await loadTodos(); } catch(e) { console.warn('loadTodos error',e); }
+      renderCatFilter();
+      renderMiniCal();
+    } else {
+      document.getElementById('login-screen').classList.remove('hidden');
+    }
+  } catch(e) {
+    clearTimeout(loadingTimeout);
+    console.warn('auth init error',e);
+    document.getElementById('login-screen').classList.remove('hidden');
+  }
+  document.getElementById('loading-screen').classList.add('hidden');
+})();
+
+// ── Auth 상태 변경 감지 (로그인/로그아웃 시) ──
+sb.auth.onAuthStateChange(async(event,session)=>{
+  if(event==='SIGNED_IN' && session?.user && !currentUser){
+    currentUser=session.user;
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('app-screen').classList.remove('hidden');
+    await loadCategories();
+    await loadTxCats('income');
+    await loadTxCats('expense');
+    await loadEvCats();
+    await loadTodos();
+    renderCatFilter();
+    renderMiniCal();
+    document.getElementById('loading-screen').classList.add('hidden');
+  } else if(event==='SIGNED_OUT'){
+    currentUser=null;
+    document.getElementById('login-screen').classList.remove('hidden');
+    document.getElementById('app-screen').classList.add('hidden');
+  }
+});
+</script>
+</body>
+</html>
