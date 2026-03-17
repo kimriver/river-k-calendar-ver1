@@ -302,6 +302,7 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
 .m-date { background:var(--bg3); border:1px solid var(--border); border-radius:8px; padding:10px 12px; color:var(--text); font-family:'Space Mono',monospace; font-size:13px; outline:none; width:100%; max-width:200px; color-scheme:dark; transition:border-color 0.2s; }
 .m-date:focus { border-color:var(--accent); }
 #modal-cat-list { display:flex; flex-wrap:wrap; gap:6px; }
+#tx-modal-cat-list { display:flex; flex-wrap:wrap; gap:6px; }
 .m-cat-chip { padding:5px 13px; border-radius:20px; font-size:12px; cursor:pointer; border:2px solid transparent; color:#fff; transition:all 0.15s; opacity:0.45; font-family:'Noto Sans KR',sans-serif; }
 .m-cat-chip.selected { opacity:1; border-color:rgba(255,255,255,0.5); }
 .m-cat-none { padding:5px 13px; border-radius:20px; font-size:12px; cursor:pointer; border:1px solid var(--border); color:var(--text2); background:var(--bg3); transition:all 0.15s; font-family:'Noto Sans KR',sans-serif; }
@@ -621,7 +622,7 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
     <div class="modal-bd">
       <div class="modal-field">
         <label>카테고리</label>
-        <div id="tx-modal-cat-list"></div>
+        <div id="tx-modal-cat-list" style="display:flex;flex-wrap:wrap;gap:6px;"></div>
       </div>
       <div class="modal-field">
         <label>금액</label>
