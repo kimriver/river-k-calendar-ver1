@@ -1296,11 +1296,15 @@ async function renderCalView() {
     const wrap=document.createElement('div'); wrap.className='cal-todos';
 
     let itemCount=0;
+    const maxItems=6;
+    let totalItems=0;
+
     // 일정 (배경색 칩으로 표시)
     if(calLayers.event){
       (evData||[]).forEach(ev=>{
-        if(itemCount>=4) return;
         if(dstr<ev.start_date||dstr>ev.end_date) return;
+        totalItems++;
+        if(itemCount>=maxItems) return;
         const cat=evCats.find(c=>c.id===ev.cat_id);
         const color=cat?cat.color:'#f59e0b';
         const isStart=dstr===ev.start_date, isEnd=dstr===ev.end_date;
@@ -1316,8 +1320,9 @@ async function renderCalView() {
     // 할 일
     if(calLayers.todo){
       const dt=monthData[dstr]||[];
-      dt.slice(0,2).forEach(t=>{
-        if(itemCount>=4) return;
+      totalItems+=dt.length;
+      dt.forEach(t=>{
+        if(itemCount>=maxItems) return;
         const cat=gc(t.cat_id);
         const chip=document.createElement('div'); chip.className='cal-chip'+(t.done?' done':'');
         chip.style.borderLeftColor=cat?cat.color:'var(--accent)'; chip.textContent=t.title; wrap.appendChild(chip); itemCount++;
@@ -1326,8 +1331,9 @@ async function renderCalView() {
     // 수입
     if(calLayers.income){
       const incList=(txData||[]).filter(t=>t.date===dstr&&t.type==='income');
-      incList.slice(0,1).forEach(t=>{
-        if(itemCount>=4) return;
+      totalItems+=incList.length;
+      incList.forEach(t=>{
+        if(itemCount>=maxItems) return;
         const chip=document.createElement('div'); chip.className='cal-chip income';
         chip.textContent=`💰 ${fmtAmt(t.amount)}`; wrap.appendChild(chip); itemCount++;
       });
@@ -1335,11 +1341,20 @@ async function renderCalView() {
     // 지출
     if(calLayers.expense){
       const expList=(txData||[]).filter(t=>t.date===dstr&&t.type==='expense');
-      expList.slice(0,1).forEach(t=>{
-        if(itemCount>=4) return;
+      totalItems+=expList.length;
+      expList.forEach(t=>{
+        if(itemCount>=maxItems) return;
         const chip=document.createElement('div'); chip.className='cal-chip expense';
         chip.textContent=`💸 ${fmtAmt(t.amount)}`; wrap.appendChild(chip); itemCount++;
       });
+    }
+    if(totalItems>maxItems){
+      const more=document.createElement('div');
+      more.className='cal-more';
+      more.style.cursor='pointer';
+      more.textContent=`+${totalItems-itemCount}개 더보기`;
+      more.onclick=(e)=>{e.stopPropagation();currentDate=new Date(y,m,d);miniCalDate=new Date(currentDate);switchView('todo');loadTodos();};
+      wrap.appendChild(more);
     }
 
     cell.appendChild(wrap);
