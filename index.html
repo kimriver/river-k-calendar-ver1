@@ -508,6 +508,15 @@ try {
   });
 } catch(e) {}
 
+// ── 브라우저 종료 시 Supabase 세션 자동 삭제 ──
+window.addEventListener('beforeunload', () => {
+  try {
+    Object.keys(localStorage).forEach(key => {
+      if(key.startsWith('sb-')) localStorage.removeItem(key);
+    });
+  } catch(e) {}
+});
+
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
 // ── State ──
