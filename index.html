@@ -1475,7 +1475,18 @@ async function renderCalView() {
       more.className='cal-more';
       more.style.cursor='pointer';
       more.textContent=`+${totalItems-itemCount}개 더보기`;
-      more.onclick=(e)=>{e.stopPropagation();currentDate=new Date(y,m,d);miniCalDate=new Date(currentDate);switchView('todo');loadTodos();};
+      const activeLayers=Object.keys(calLayers).filter(k=>calLayers[k]);
+      const target=activeLayers.length===1?activeLayers[0]:'dash';
+      more.onclick=(e)=>{
+        e.stopPropagation();
+        currentDate=new Date(y,m,d);
+        miniCalDate=new Date(currentDate);
+        if(target==='dash'){ switchView('dash'); }
+        else if(target==='todo'){ switchView('todo'); loadTodos(); }
+        else if(target==='income'){ txIncomeDate=new Date(y,m,d); switchView('income'); }
+        else if(target==='expense'){ txExpenseDate=new Date(y,m,d); switchView('expense'); }
+        else if(target==='event'){ evViewDate=new Date(y,m,d); switchView('event'); }
+      };
       wrap.appendChild(more);
     }
 
