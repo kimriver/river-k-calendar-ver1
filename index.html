@@ -32,7 +32,7 @@ body.theme-light {
 }
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html,body { height:100%; overflow:hidden; }
-body { font-family:var(--font-main,'Noto Sans KR',sans-serif); font-size:var(--font-size, 14px); background:var(--bg); color:var(--text); display:flex; flex-direction:column; transition:background 0.25s, color 0.25s, font-family 0.1s; }
+body { font-family:var(--font-main,'Noto Sans KR',sans-serif); background:var(--bg); color:var(--text); display:flex; flex-direction:column; transition:background 0.25s, color 0.25s, font-family 0.1s; }
 
 /* ── 설정 탭 ── */
 .settings-tabs { display:flex; gap:0; margin-bottom:18px; background:var(--bg3); border-radius:8px; padding:3px; }
@@ -1191,8 +1191,10 @@ try {
 } catch(e) {}
 try {
   const savedFontSize = localStorage.getItem('rkt-font-size') || 'small';
-  const _SIZES = { small:'14px', medium:'16px', large:'18px' };
-  document.body.style.setProperty('--font-size', _SIZES[savedFontSize] || '14px');
+  const _ZOOMS = { small:'100%', medium:'114%', large:'129%' };
+  const _zoom = _ZOOMS[savedFontSize] || '100%';
+  // app-screen/login-screen은 아직 로드 중이므로 body에 임시 적용
+  document.documentElement.style.setProperty('--init-zoom', _zoom);
 } catch(e) {}
 try {
   const savedFontId = localStorage.getItem('rkt-font') || 'noto';
@@ -2214,16 +2216,22 @@ const FONT_SIZES = {
 };
 
 function applyFontSize(sizeId) {
-  const size = FONT_SIZES[sizeId] || FONT_SIZES.small;
   appliedFontSize = sizeId;
-  document.body.style.setProperty('--font-size', size.px);
+  // zoom으로 전체 UI를 비율 확대 (px 하드코딩된 모든 요소에 적용됨)
+  const zooms = { small: '100%', medium: '114%', large: '129%' };
+  document.getElementById('app-screen').style.zoom = zooms[sizeId] || '100%';
+  document.getElementById('login-screen').style.zoom = zooms[sizeId] || '100%';
 }
 
 function loadFontSize() {
   try {
     const saved = localStorage.getItem('rkt-font-size') || 'small';
-    applyFontSize(saved);
     currentFontSize = saved;
+    appliedFontSize = saved;
+    const zooms = { small:'100%', medium:'114%', large:'129%' };
+    const z = zooms[saved] || '100%';
+    document.getElementById('app-screen').style.zoom = z;
+    document.getElementById('login-screen').style.zoom = z;
   } catch(e) {}
 }
 
