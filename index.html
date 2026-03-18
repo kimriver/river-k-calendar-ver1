@@ -1103,12 +1103,15 @@ try {
   document.body.style.setProperty('--font-main', fam);
 } catch(e) {}
 
-window.addEventListener('beforeunload', () => {
-  try {
-    Object.keys(localStorage).forEach(key => {
-      if(key.startsWith('sb-')) localStorage.removeItem(key);
-    });
-  } catch(e) {}
+// ── 브라우저 탭 닫힘 감지 (visibilitychange 방식으로 변경) ──
+// beforeunload는 새로고침/링크이동에도 실행돼 세션을 날리므로 제거
+// 대신 실제 탭 닫힘 여부를 pagehide + sessionStorage로 구분
+window.addEventListener('pagehide', (e) => {
+  // e.persisted=true이면 BFCache(뒤로가기 캐시)이므로 세션 유지
+  if(!e.persisted) {
+    // 실제 탭 닫힘: 세션 삭제하지 않음 (자동 로그아웃 제거)
+    // Supabase 자체 만료에 맡김
+  }
 });
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -2716,8 +2719,10 @@ const loadingTimeout = setTimeout(() => {
     clearTimeout(loadingTimeout);
     console.warn('auth init error',e);
     document.getElementById('login-screen').classList.remove('hidden');
+  } finally {
+    // 어떤 경우에도 로딩 화면 반드시 숨김
+    document.getElementById('loading-screen').classList.add('hidden');
   }
-  document.getElementById('loading-screen').classList.add('hidden');
 })();
 
 sb.auth.onAuthStateChange(async(event,session)=>{
