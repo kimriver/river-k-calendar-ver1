@@ -9,7 +9,7 @@
 <title>River'K Today</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.26.0"></script>
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Space+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Nanum+Gothic:wght@400;700&family=Nanum+Myeongjo:wght@400;700&family=Nanum+Gothic+Coding&family=Black+Han+Sans&family=Do+Hyeon&family=Jua&family=Gaegu:wght@300;400;700&family=Stylish&family=Cute+Font&family=Sunflower:wght@300;500;700&family=Space+Mono:wght@400;700&display=swap');
 
 :root {
   --bg:#0a0a0f; --bg2:#12121a; --bg3:#1a1a25; --bg4:#22222f;
@@ -30,7 +30,7 @@ body.theme-light {
 }
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html,body { height:100%; overflow:hidden; }
-body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--text); display:flex; flex-direction:column; transition:background 0.25s, color 0.25s; }
+body { font-family:var(--font-main,'Noto Sans KR',sans-serif); background:var(--bg); color:var(--text); display:flex; flex-direction:column; transition:background 0.25s, color 0.25s, font-family 0.1s; }
 
 /* ── 설정 탭 ── */
 .settings-tabs { display:flex; gap:0; margin-bottom:18px; background:var(--bg3); border-radius:8px; padding:3px; }
@@ -283,6 +283,26 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
 .tx-add-btn { border:none; border-radius:var(--radius); color:white; padding:10px 16px; cursor:pointer; font-family:'Noto Sans KR',sans-serif; font-size:14px; font-weight:500; transition:all 0.2s; white-space:nowrap; flex-shrink:0; }
 .income-btn { background:#22c55e; }
 .income-btn:hover { background:#4ade80; }
+
+/* ── 폰트 선택 ── */
+.font-list { display:flex; flex-direction:column; gap:6px; margin-top:4px; }
+.font-item {
+  display:flex; align-items:center; gap:12px;
+  padding:11px 14px; border-radius:10px;
+  border:2px solid var(--border); background:var(--bg3);
+  cursor:pointer; transition:all 0.15s;
+}
+.font-item:hover { border-color:var(--accent); }
+.font-item.selected { border-color:var(--accent); background:var(--accent-dim); }
+.font-item-preview {
+  flex:1; font-size:15px; color:var(--text); line-height:1.3;
+}
+.font-item-name {
+  font-size:10px; color:var(--text3); font-family:'Space Mono',monospace;
+  letter-spacing:0.5px; flex-shrink:0;
+}
+.font-item-check { font-size:14px; opacity:0; transition:opacity 0.15s; flex-shrink:0; }
+.font-item.selected .font-item-check { opacity:1; }
 
 /* ── 인라인 카테고리 드롭다운 ── */
 .cat-dropdown-wrap { position:relative; flex-shrink:0; }
@@ -1039,6 +1059,10 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
             </div>
           </div>
         </div>
+        <div class="modal-field" style="margin-top:16px">
+          <label>폰트</label>
+          <div class="font-list" id="font-list"></div>
+        </div>
       </div>
     </div>
     <div class="modal-ft">
@@ -1060,10 +1084,23 @@ try {
   });
 } catch(e) {}
 
-// ── 페이지 로드 즉시 테마 적용 (깜빡임 방지) ──
+// ── 페이지 로드 즉시 테마/폰트 적용 (깜빡임 방지) ──
 try {
   const savedTheme = localStorage.getItem('rkt-theme') || 'dark';
   if(savedTheme === 'light') document.body.classList.add('theme-light');
+} catch(e) {}
+try {
+  const savedFontId = localStorage.getItem('rkt-font') || 'noto';
+  const _FONTS = {
+    noto:"'Noto Sans KR',sans-serif", nanumg:"'Nanum Gothic',sans-serif",
+    nanumc:"'Nanum Myeongjo',serif",  nanumco:"'Nanum Gothic Coding',monospace",
+    black:"'Black Han Sans',sans-serif", dohyeon:"'Do Hyeon',sans-serif",
+    jua:"'Jua',sans-serif", gaegu:"'Gaegu',cursive",
+    stylish:"'Stylish',sans-serif", cute:"'Cute Font',cursive",
+    sunflower:"'Sunflower',sans-serif"
+  };
+  const fam = _FONTS[savedFontId] || _FONTS.noto;
+  document.body.style.setProperty('--font-main', fam);
 } catch(e) {}
 
 window.addEventListener('beforeunload', () => {
@@ -1920,6 +1957,64 @@ let currentTheme = 'dark';      // 현재 선택 테마 (저장 전)
 let appliedTheme = 'dark';      // 실제 적용된 테마
 
 // ── 테마 적용 ──
+// ══════════════════════════════════════
+//  폰트 설정
+// ══════════════════════════════════════
+const FONT_LIST = [
+  { id:'noto',    name:'Noto Sans KR',      family:"'Noto Sans KR', sans-serif",        preview:'안녕하세요, River'K Today' },
+  { id:'nanumg',  name:'나눔고딕',           family:"'Nanum Gothic', sans-serif",         preview:'안녕하세요, 나눔고딕체' },
+  { id:'nanumc',  name:'나눔명조',           family:"'Nanum Myeongjo', serif",            preview:'안녕하세요, 나눔명조체' },
+  { id:'nanumco', name:'나눔고딕 코딩',      family:"'Nanum Gothic Coding', monospace",   preview:'안녕하세요, 코딩체' },
+  { id:'black',   name:'Black Han Sans',    family:"'Black Han Sans', sans-serif",       preview:'블랙한산스 폰트' },
+  { id:'dohyeon', name:'Do Hyeon',          family:"'Do Hyeon', sans-serif",             preview:'도현체 폰트입니다' },
+  { id:'jua',     name:'Jua',              family:"'Jua', sans-serif",                  preview:'주아체 폰트입니다' },
+  { id:'gaegu',   name:'개구체 (Gaegu)',    family:"'Gaegu', cursive",                   preview:'개구쟁이 손글씨체' },
+  { id:'stylish', name:'Stylish',          family:"'Stylish', sans-serif",              preview:'스타일리시 폰트' },
+  { id:'cute',    name:'귀여운 글씨 (Cute)', family:"'Cute Font', cursive",              preview:'귀여운 폰트체' },
+  { id:'sunflower',name:'해바라기 (Sunflower)',family:"'Sunflower', sans-serif",         preview:'해바라기 폰트입니다' },
+];
+
+let currentFont = 'noto';
+let appliedFont = 'noto';
+
+function applyFont(fontId) {
+  const font = FONT_LIST.find(f=>f.id===fontId) || FONT_LIST[0];
+  appliedFont = font.id;
+  document.body.style.setProperty('--font-main', font.family);
+  // Space Mono는 유지 (코드/날짜 표시용)
+}
+
+function loadFont() {
+  try {
+    const saved = localStorage.getItem('rkt-font') || 'noto';
+    applyFont(saved);
+    currentFont = saved;
+  } catch(e) {}
+}
+
+function selectFont(fontId) {
+  currentFont = fontId;
+  // 미리보기: 즉시 적용
+  applyFont(fontId);
+  renderFontList();
+}
+
+function renderFontList() {
+  const wrap = document.getElementById('font-list');
+  if(!wrap) return;
+  wrap.innerHTML = '';
+  FONT_LIST.forEach(font => {
+    const item = document.createElement('div');
+    item.className = 'font-item' + (currentFont===font.id?' selected':'');
+    item.onclick = () => selectFont(font.id);
+    item.innerHTML = `
+      <div class="font-item-preview" style="font-family:${font.family}">${font.preview}</div>
+      <div class="font-item-name">${font.name}</div>
+      <div class="font-item-check">✅</div>`;
+    wrap.appendChild(item);
+  });
+}
+
 function applyTheme(theme) {
   appliedTheme = theme;
   if(theme === 'light') {
@@ -1981,19 +2076,23 @@ function applyMenuOrder() {
 }
 
 function openSettings() {
-  // 현재 적용 테마로 카드 초기화
+  // 현재 적용 테마/폰트로 초기화
   currentTheme = appliedTheme;
+  currentFont  = appliedFont;
   document.getElementById('theme-card-dark').classList.toggle('selected', appliedTheme==='dark');
   document.getElementById('theme-card-light').classList.toggle('selected', appliedTheme==='light');
   // 항상 메뉴 순서 탭부터 시작
   switchSettingsTab('menu');
   renderSettingsMenuList();
+  renderFontList();
   document.getElementById('settings-overlay').classList.add('open');
 }
 function closeSettings() {
-  // 저장 안 하고 닫으면 원래 테마로 복구
+  // 저장 안 하고 닫으면 원래 테마/폰트로 복구
   applyTheme(appliedTheme);
+  applyFont(appliedFont);
   currentTheme = appliedTheme;
+  currentFont  = appliedFont;
   document.getElementById('settings-overlay').classList.remove('open');
 }
 
@@ -2025,7 +2124,9 @@ function renderSettingsMenuList() {
 function saveSettings() {
   try { localStorage.setItem('rkt-menu-order', JSON.stringify(menuOrder.map(m=>m.id))); } catch(e) {}
   try { localStorage.setItem('rkt-theme', currentTheme); } catch(e) {}
+  try { localStorage.setItem('rkt-font',  currentFont);  } catch(e) {}
   applyTheme(currentTheme);
+  applyFont(currentFont);
   applyMenuOrder();
   document.getElementById('settings-overlay').classList.remove('open');
   toast('✅ 설정이 저장됐어요!');
@@ -2605,6 +2706,7 @@ const loadingTimeout = setTimeout(() => {
       loadMenuOrder();
       applyMenuOrder();
       loadTheme();
+      loadFont();
       renderCatFilter();
       renderMiniCal();
     } else {
@@ -2631,6 +2733,7 @@ sb.auth.onAuthStateChange(async(event,session)=>{
     loadMenuOrder();
     applyMenuOrder();
     loadTheme();
+    loadFont();
     renderCatFilter();
     renderMiniCal();
     document.getElementById('loading-screen').classList.add('hidden');
