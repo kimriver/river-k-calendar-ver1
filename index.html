@@ -32,7 +32,7 @@ body.theme-light {
 }
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html,body { height:100%; overflow:hidden; }
-body { font-family:var(--font-main,'Noto Sans KR',sans-serif); background:var(--bg); color:var(--text); display:flex; flex-direction:column; transition:background 0.25s, color 0.25s, font-family 0.1s; }
+body { font-family:var(--font-main,'Noto Sans KR',sans-serif); font-size:var(--font-size, 14px); background:var(--bg); color:var(--text); display:flex; flex-direction:column; transition:background 0.25s, color 0.25s, font-family 0.1s; }
 
 /* ── 설정 탭 ── */
 .settings-tabs { display:flex; gap:0; margin-bottom:18px; background:var(--bg3); border-radius:8px; padding:3px; }
@@ -319,6 +319,21 @@ body { font-family:var(--font-main,'Noto Sans KR',sans-serif); background:var(--
 .tx-add-btn { border:none; border-radius:var(--radius); color:white; padding:10px 16px; cursor:pointer; font-family:'Noto Sans KR',sans-serif; font-size:14px; font-weight:500; transition:all 0.2s; white-space:nowrap; flex-shrink:0; }
 .income-btn { background:#22c55e; }
 .income-btn:hover { background:#4ade80; }
+
+/* ── 폰트 크기 선택 ── */
+.font-size-cards { display:flex; gap:10px; }
+.font-size-card {
+  flex:1; border:2px solid var(--border); border-radius:12px;
+  padding:12px 8px; cursor:pointer; transition:all 0.2s;
+  background:var(--bg3); text-align:center;
+}
+.font-size-card:hover { border-color:var(--accent); }
+.font-size-card.selected { border-color:var(--accent); background:var(--accent-dim); }
+.font-size-preview { color:var(--text); font-weight:600; margin-bottom:6px; line-height:1; }
+.font-size-label { font-size:11px; color:var(--text2); margin-bottom:2px; font-weight:600; }
+.font-size-sub { font-size:10px; color:var(--text3); }
+.font-size-card .check { font-size:14px; margin-top:6px; opacity:0; transition:opacity 0.2s; }
+.font-size-card.selected .check { opacity:1; }
 
 /* ── 폰트 선택 ── */
 .font-list { display:flex; flex-direction:column; gap:6px; margin-top:4px; }
@@ -1126,6 +1141,29 @@ body { font-family:var(--font-main,'Noto Sans KR',sans-serif); background:var(--
           </div>
         </div>
         <div class="modal-field" style="margin-top:16px">
+          <label>글자 크기</label>
+          <div class="font-size-cards">
+            <div class="font-size-card" id="fsize-small" onclick="selectFontSize('small')">
+              <div class="font-size-preview" style="font-size:13px">가나다</div>
+              <div class="font-size-label">작게</div>
+              <div class="font-size-sub">기본 크기</div>
+              <div class="check">✅</div>
+            </div>
+            <div class="font-size-card" id="fsize-medium" onclick="selectFontSize('medium')">
+              <div class="font-size-preview" style="font-size:16px">가나다</div>
+              <div class="font-size-label">보통</div>
+              <div class="font-size-sub">+2px</div>
+              <div class="check">✅</div>
+            </div>
+            <div class="font-size-card" id="fsize-large" onclick="selectFontSize('large')">
+              <div class="font-size-preview" style="font-size:20px">가나다</div>
+              <div class="font-size-label">크게</div>
+              <div class="font-size-sub">+4px</div>
+              <div class="check">✅</div>
+            </div>
+          </div>
+        </div>
+        <div class="modal-field" style="margin-top:16px">
           <label>폰트</label>
           <div class="font-list" id="font-list"></div>
         </div>
@@ -1150,6 +1188,11 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 try {
   const savedTheme = localStorage.getItem('rkt-theme') || 'dark';
   if(savedTheme === 'light') document.body.classList.add('theme-light');
+} catch(e) {}
+try {
+  const savedFontSize = localStorage.getItem('rkt-font-size') || 'small';
+  const _SIZES = { small:'14px', medium:'16px', large:'18px' };
+  document.body.style.setProperty('--font-size', _SIZES[savedFontSize] || '14px');
 } catch(e) {}
 try {
   const savedFontId = localStorage.getItem('rkt-font') || 'noto';
@@ -2161,6 +2204,37 @@ const FONT_LIST = [
 
 let currentFont = 'noto';
 let appliedFont = 'noto';
+let currentFontSize = 'small';
+let appliedFontSize = 'small';
+
+const FONT_SIZES = {
+  small:  { px:'14px', label:'작게' },
+  medium: { px:'16px', label:'보통' },
+  large:  { px:'18px', label:'크게' },
+};
+
+function applyFontSize(sizeId) {
+  const size = FONT_SIZES[sizeId] || FONT_SIZES.small;
+  appliedFontSize = sizeId;
+  document.body.style.setProperty('--font-size', size.px);
+}
+
+function loadFontSize() {
+  try {
+    const saved = localStorage.getItem('rkt-font-size') || 'small';
+    applyFontSize(saved);
+    currentFontSize = saved;
+  } catch(e) {}
+}
+
+function selectFontSize(sizeId) {
+  currentFontSize = sizeId;
+  applyFontSize(sizeId); // 즉시 미리보기
+  // 카드 선택 상태 갱신
+  ['small','medium','large'].forEach(s => {
+    document.getElementById(`fsize-${s}`)?.classList.toggle('selected', s === sizeId);
+  });
+}
 
 function applyFont(fontId) {
   const font = FONT_LIST.find(f=>f.id===fontId) || FONT_LIST[0];
@@ -2261,11 +2335,15 @@ function applyMenuOrder() {
 }
 
 function openSettings() {
-  // 현재 적용 테마/폰트로 초기화
-  currentTheme = appliedTheme;
-  currentFont  = appliedFont;
+  // 현재 적용 테마/폰트/크기로 초기화
+  currentTheme    = appliedTheme;
+  currentFont     = appliedFont;
+  currentFontSize = appliedFontSize;
   document.getElementById('theme-card-dark').classList.toggle('selected', appliedTheme==='dark');
   document.getElementById('theme-card-light').classList.toggle('selected', appliedTheme==='light');
+  ['small','medium','large'].forEach(s => {
+    document.getElementById(`fsize-${s}`)?.classList.toggle('selected', s === appliedFontSize);
+  });
   // 항상 메뉴 순서 탭부터 시작
   switchSettingsTab('menu');
   renderSettingsMenuList();
@@ -2273,11 +2351,13 @@ function openSettings() {
   document.getElementById('settings-overlay').classList.add('open');
 }
 function closeSettings() {
-  // 저장 안 하고 닫으면 원래 테마/폰트로 복구
+  // 저장 안 하고 닫으면 원래 테마/폰트/크기로 복구
   applyTheme(appliedTheme);
   applyFont(appliedFont);
-  currentTheme = appliedTheme;
-  currentFont  = appliedFont;
+  applyFontSize(appliedFontSize);
+  currentTheme    = appliedTheme;
+  currentFont     = appliedFont;
+  currentFontSize = appliedFontSize;
   document.getElementById('settings-overlay').classList.remove('open');
 }
 
@@ -2308,10 +2388,12 @@ function renderSettingsMenuList() {
 
 function saveSettings() {
   try { localStorage.setItem('rkt-menu-order', JSON.stringify(menuOrder.map(m=>m.id))); } catch(e) {}
-  try { localStorage.setItem('rkt-theme', currentTheme); } catch(e) {}
-  try { localStorage.setItem('rkt-font',  currentFont);  } catch(e) {}
+  try { localStorage.setItem('rkt-theme',     currentTheme);    } catch(e) {}
+  try { localStorage.setItem('rkt-font',      currentFont);     } catch(e) {}
+  try { localStorage.setItem('rkt-font-size', currentFontSize); } catch(e) {}
   applyTheme(currentTheme);
   applyFont(currentFont);
+  applyFontSize(currentFontSize);
   applyMenuOrder();
   document.getElementById('settings-overlay').classList.remove('open');
   toast('✅ 설정이 저장됐어요!');
@@ -2924,6 +3006,7 @@ async function showApp(user) {
     console.log('[10] loadTheme/Font 전');
     loadTheme();
     loadFont();
+    loadFontSize();
     console.log('[11] renderCatFilter 전');
     renderCatFilter();
     console.log('[12] renderMiniCal 전');
