@@ -2135,24 +2135,41 @@ function saveSettings() {
 }
 
 async function renderDash() {
-  const now=new Date();
-  const hours=now.getHours();
-  const greeting=hours<6?'🌙 새벽이에요':hours<12?'🌅 좋은 아침이에요':hours<18?'☀️ 좋은 오후예요':'🌆 좋은 저녁이에요';
-  document.getElementById('dash-greeting').textContent=greeting;
-  document.getElementById('dash-date').textContent=fmtDate(now);
+  // currentDate 기준으로 렌더링 (미니달력 연동)
+  const now = new Date();                     // 현재 시각 (인사말용)
+  const target = currentDate;                 // 선택된 날짜 (데이터용)
+  const isToday = ds(target) === ds(now);
 
-  const todayStr2=ds(now);
-  const y=now.getFullYear(), m=now.getMonth()+1;
-  const from=`${y}-${String(m).padStart(2,'0')}-01`;
-  const to=`${y}-${String(m).padStart(2,'0')}-31`;
+  // 인사말은 항상 현재 시각 기준
+  const hours = now.getHours();
+  const greeting = hours<6?'🌙 새벽이에요':hours<12?'🌅 좋은 아침이에요':hours<18?'☀️ 좋은 오후예요':'🌆 좋은 저녁이에요';
+  document.getElementById('dash-greeting').textContent = greeting;
+  // 날짜 표시는 선택 날짜 기준
+  document.getElementById('dash-date').textContent = fmtDate(target);
 
+  // 섹션 타이틀을 선택 날짜에 맞게 변경
+  const titlePrefix = isToday ? '오늘의' : fmtDate(target).replace(/\(.*?\)/,'').trim();
+  const todoSec = document.querySelector('#view-dash .dash-section:nth-child(1) .dash-section-title');
+  const evSec   = document.querySelector('#view-dash .dash-section:nth-child(2) .dash-section-title');
+  if(todoSec) todoSec.textContent = `${titlePrefix} 할 일`;
+  if(evSec)   evSec.textContent   = `${titlePrefix} 일정`;
+
+  const targetStr = ds(target);
+  const y = target.getFullYear(), m = target.getMonth()+1;
+  const from = `${y}-${String(m).padStart(2,'0')}-01`;
+  const to   = `${y}-${String(m).padStart(2,'0')}-31`;
+
+  // ── 할 일 ──
   const {data:todayTodosData}=await sb.from('todos').select('*')
-    .eq('user_id',currentUser.id).eq('date',todayStr2).order('sort_order');
+    .eq('user_id',currentUser.id).eq('date',targetStr).order('sort_order');
   const todayTodos=todayTodosData||[];
   const total=todayTodos.length, done=todayTodos.filter(t=>t.done).length;
   document.getElementById('dash-total').textContent=total;
   document.getElementById('dash-done').textContent=done;
   document.getElementById('dash-remain').textContent=total-done;
+
+  // 섹션 타이틀 날짜 반영
+  const dayLabel = isToday ? '오늘의' : fmtDate(target).replace(/\(.*\)/,'').trim();
 
   const todoListEl=document.getElementById('dash-todo-list');
   todoListEl.innerHTML='';
@@ -2169,11 +2186,12 @@ async function renderDash() {
       todoListEl.appendChild(item);
     });
   } else {
-    todoListEl.innerHTML=`<div class="dash-empty">오늘 할 일 없음</div>`;
+    todoListEl.innerHTML=`<div class="dash-empty">${dayLabel} 할 일 없음</div>`;
   }
 
+  // ── 일정 ──
   const {data:evData}=await sb.from('events').select('*').eq('user_id',currentUser.id)
-    .lte('start_date',todayStr2).gte('end_date',todayStr2).order('start_date');
+    .lte('start_date',targetStr).gte('end_date',targetStr).order('start_date');
   const evList=evData||[];
   const evListEl=document.getElementById('dash-event-list');
   evListEl.innerHTML='';
@@ -2193,27 +2211,28 @@ async function renderDash() {
       evListEl.appendChild(item);
     });
   } else {
-    evListEl.innerHTML=`<div class="dash-empty">오늘 일정 없음</div>`;
+    evListEl.innerHTML=`<div class="dash-empty">${dayLabel} 일정 없음</div>`;
   }
 
+  // ── 수입/지출 (월 합계 + 선택일 합계) ──
   const {data:txData}=await sb.from('transactions').select('*')
     .eq('user_id',currentUser.id).gte('date',from).lte('date',to);
   const txList=txData||[];
 
-  const incomeMonth=txList.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
-  const incomeToday=txList.filter(t=>t.type==='income'&&t.date===todayStr2).reduce((s,t)=>s+t.amount,0);
-  const expenseMonth=txList.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
-  const expenseToday=txList.filter(t=>t.type==='expense'&&t.date===todayStr2).reduce((s,t)=>s+t.amount,0);
+  const incomeMonth  = txList.filter(t=>t.type==='income').reduce((s,t)=>s+t.amount,0);
+  const incomeTarget = txList.filter(t=>t.type==='income'&&t.date===targetStr).reduce((s,t)=>s+t.amount,0);
+  const expenseMonth  = txList.filter(t=>t.type==='expense').reduce((s,t)=>s+t.amount,0);
+  const expenseTarget = txList.filter(t=>t.type==='expense'&&t.date===targetStr).reduce((s,t)=>s+t.amount,0);
   document.getElementById('dash-income-month').textContent=fmtAmt(incomeMonth);
-  document.getElementById('dash-income-today').textContent=fmtAmt(incomeToday);
+  document.getElementById('dash-income-today').textContent=fmtAmt(incomeTarget);
   document.getElementById('dash-expense-month').textContent=fmtAmt(expenseMonth);
-  document.getElementById('dash-expense-today').textContent=fmtAmt(expenseToday);
+  document.getElementById('dash-expense-today').textContent=fmtAmt(expenseTarget);
 
   const incListEl=document.getElementById('dash-income-list');
   incListEl.innerHTML='';
-  const todayIncome=txList.filter(t=>t.type==='income'&&t.date===todayStr2);
-  if(todayIncome.length){
-    todayIncome.forEach(t=>{
+  const targetIncome=txList.filter(t=>t.type==='income'&&t.date===targetStr);
+  if(targetIncome.length){
+    targetIncome.forEach(t=>{
       const cat=gcTx('income',t.cat_id);
       const item=document.createElement('div');
       item.className='dash-item';
@@ -2225,14 +2244,14 @@ async function renderDash() {
       incListEl.appendChild(item);
     });
   } else {
-    incListEl.innerHTML=`<div class="dash-empty">오늘 수입 없음</div>`;
+    incListEl.innerHTML=`<div class="dash-empty">${dayLabel} 수입 없음</div>`;
   }
 
   const expListEl=document.getElementById('dash-expense-list');
   expListEl.innerHTML='';
-  const todayExpense=txList.filter(t=>t.type==='expense'&&t.date===todayStr2);
-  if(todayExpense.length){
-    todayExpense.forEach(t=>{
+  const targetExpense=txList.filter(t=>t.type==='expense'&&t.date===targetStr);
+  if(targetExpense.length){
+    targetExpense.forEach(t=>{
       const cat=gcTx('expense',t.cat_id);
       const item=document.createElement('div');
       item.className='dash-item';
@@ -2244,7 +2263,7 @@ async function renderDash() {
       expListEl.appendChild(item);
     });
   } else {
-    expListEl.innerHTML=`<div class="dash-empty">오늘 지출 없음</div>`;
+    expListEl.innerHTML=`<div class="dash-empty">${dayLabel} 지출 없음</div>`;
   }
 }
 
