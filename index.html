@@ -490,18 +490,13 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
       <!-- Dashboard View -->
       <div class="view" id="view-dash">
         <div class="dash-wrap">
-          <!-- 헤더 -->
           <div class="dash-top">
             <div>
               <div class="dash-greeting" id="dash-greeting"></div>
               <div class="dash-date" id="dash-date"></div>
             </div>
           </div>
-
-          <!-- 2컬럼 그리드 -->
           <div class="dash-grid">
-
-            <!-- 할 일 섹션 -->
             <div class="dash-section">
               <div class="dash-section-header" onclick="switchView('todo')">
                 <span class="dash-section-icon">📋</span>
@@ -515,8 +510,6 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
               </div>
               <div class="dash-list" id="dash-todo-list"></div>
             </div>
-
-            <!-- 일정 섹션 -->
             <div class="dash-section">
               <div class="dash-section-header" onclick="switchView('event')">
                 <span class="dash-section-icon">🗓</span>
@@ -525,8 +518,6 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
               </div>
               <div class="dash-list" id="dash-event-list"></div>
             </div>
-
-            <!-- 수입 섹션 -->
             <div class="dash-section">
               <div class="dash-section-header" onclick="switchView('income')">
                 <span class="dash-section-icon">💰</span>
@@ -539,8 +530,6 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
               </div>
               <div class="dash-list" id="dash-income-list"></div>
             </div>
-
-            <!-- 지출 섹션 -->
             <div class="dash-section">
               <div class="dash-section-header" onclick="switchView('expense')">
                 <span class="dash-section-icon">💸</span>
@@ -553,7 +542,6 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
               </div>
               <div class="dash-list" id="dash-expense-list"></div>
             </div>
-
           </div>
         </div>
       </div>
@@ -881,22 +869,18 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
   </div>
 </div>
 
+<div id="toast"></div>
+
 <script>
-// ══════════════════════════════════════
-//  설정 — 여기에 본인 키를 입력하세요
-// ══════════════════════════════════════
 const SUPABASE_URL = 'https://koabxnqimggnofzfatsc.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtvYWJ4bnFpbWdnbm9memZhdHNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3MDU3OTcsImV4cCI6MjA4OTI4MTc5N30.KT2CarRDIEHbxFZgej1TAF_eVWMWGu-T-mhZVnyKcZk';
-// ══════════════════════════════════════
 
-// ── localStorage 잠금 키 청소 ──
 try {
   Object.keys(localStorage).forEach(key => {
     if(key.includes('lock')) localStorage.removeItem(key);
   });
 } catch(e) {}
 
-// ── 브라우저 종료 시 Supabase 세션 자동 삭제 ──
 window.addEventListener('beforeunload', () => {
   try {
     Object.keys(localStorage).forEach(key => {
@@ -907,8 +891,6 @@ window.addEventListener('beforeunload', () => {
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-// ── 메뉴 순서 즉시 적용 (페이지 로드 시) ──
-// 함수 선언 전이라 인라인으로 처리
 (function() {
   try {
     const saved = localStorage.getItem('rkt-menu-order');
@@ -927,7 +909,6 @@ const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   } catch(e) {}
 })();
 
-// ── State ──
 let currentDate = new Date();
 let todos = [];
 let categories = [];
@@ -952,7 +933,6 @@ const COLORS = [
   '#6366f1','#ec4899','#84cc16','#2dd4bf','#64748b'
 ];
 
-// ── Utils ──
 function ds(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
 function fmtDate(d) { const days=['일','월','화','수','목','금','토']; return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${days[d.getDay()]})`; }
 function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2); }
@@ -986,7 +966,6 @@ function toast(msg) {
 
 function handleOC(e,id,fn) { if(e.target.id===id) fn(); }
 
-// ── Auth ──
 let authTab = 'login';
 function setTab(t) {
   authTab=t;
@@ -1002,15 +981,12 @@ async function submitAuth() {
   const msg=document.getElementById('login-msg');
   if(!email||!pw) { msg.className='login-msg error'; msg.textContent='이메일과 비밀번호를 입력해주세요.'; return; }
   msg.className='login-msg'; msg.textContent='처리 중...';
-
-  // 로그인 전 잠금 키 청소
   try {
     Object.keys(localStorage).forEach(key => {
       if(key.includes('lock')) localStorage.removeItem(key);
     });
     if(window.indexedDB) indexedDB.deleteDatabase('supabase-auth-lock');
   } catch(e) {}
-
   try {
     if(authTab==='login') {
       const {error}=await sb.auth.signInWithPassword({email,password:pw});
@@ -1032,7 +1008,6 @@ async function logout() {
   document.getElementById('login-screen').classList.remove('hidden');
 }
 
-// ── Data ──
 async function loadTodos() {
   if(!currentUser) return;
   sync('syncing');
@@ -1085,7 +1060,6 @@ async function loadMonth() {
   return result;
 }
 
-// ── Undo ──
 function pushUndo(desc) {
   undoStack.push({todos:dc(todos),desc});
   if(undoStack.length>UNDO_LIMIT) undoStack.shift();
@@ -1100,31 +1074,25 @@ async function undo() {
   if(!undoStack.length) return;
   const snap=undoStack.pop();
   const old=dc(todos); todos=snap.todos;
-  // Sync: delete new ones, restore deleted ones, update changed ones
   for(const t of todos) await saveTodo(t);
   for(const t of old) { if(!todos.find(x=>x.id===t.id)) await deleteTodoDb(t.id); }
   renderTodos(); renderUndoBtn();
   toast(`↩ "${snap.desc}" 되돌렸어요`);
 }
 
-// ── Category filter ──
 function renderCatFilter() {
   const bar=document.getElementById('cat-filter-bar');
   bar.querySelectorAll('.cat-filter-chip').forEach(el=>el.remove());
   const mgr=bar.querySelector('.cat-manage-btn');
-
-  // activeCatFilter가 현재 카테고리 목록에 없으면 전체로 리셋
   if(activeCatFilter!=='' && !categories.find(c=>c.id===activeCatFilter)) {
     activeCatFilter='';
   }
-
   const all=document.createElement('div');
   all.className='cat-filter-chip'+(activeCatFilter===''?' active':'');
   all.textContent='전체';
   if(activeCatFilter==='') all.style.cssText='background:var(--accent);color:#fff;border-color:var(--accent)';
   all.onclick=()=>setCF('');
   bar.insertBefore(all,mgr);
-
   categories.forEach(cat=>{
     const a=activeCatFilter===cat.id;
     const chip=document.createElement('div');
@@ -1137,7 +1105,6 @@ function renderCatFilter() {
 }
 function setCF(id) { activeCatFilter=id; renderCatFilter(); renderTodos(); }
 
-// ── Render todos ──
 function renderTodos() {
   const list=document.getElementById('todo-list');
   document.getElementById('date-display').textContent=fmtDate(currentDate);
@@ -1146,7 +1113,6 @@ function renderTodos() {
   document.getElementById('stat-total').textContent=total;
   document.getElementById('stat-done').textContent=done;
   document.getElementById('stat-remain').textContent=total-done;
-  // 미완료 이월 버튼: 미완료 항목이 있을 때만 표시
   const carryBtn=document.getElementById('carry-btn');
   if(total-done>0) carryBtn.classList.add('visible');
   else carryBtn.classList.remove('visible');
@@ -1203,7 +1169,6 @@ function renderTodos() {
   });
 }
 
-// ── Actions ──
 async function addTodo() {
   const inp=document.getElementById('new-todo-input'),title=inp.value.trim();
   if(!title) return;
@@ -1216,7 +1181,6 @@ async function addTodo() {
   }).select().single();
   inp.disabled=false; inp.focus();
   if(error||!data){ sync('ok'); toast('❌ 저장 실패, 다시 시도해주세요'); return; }
-  // DB에서 최신 목록을 다시 불러와 로컬 상태와 항상 동기화
   const {data:fresh}=await sb.from('todos').select('*').eq('user_id',currentUser.id).eq('date',ds(currentDate)).order('sort_order');
   todos=fresh||[];
   pushUndo('추가');
@@ -1236,11 +1200,9 @@ async function delTodo(idx) {
   await deleteTodoDb(id);
 }
 
-// ── 날짜 이동 Modal ──
 let movingIdx = null;
 function openMoveModal(idx) {
   movingIdx=idx;
-  // 기본값: 내일
   const tomorrow=new Date(currentDate);
   tomorrow.setDate(tomorrow.getDate()+1);
   document.getElementById('move-date-input').value=ds(tomorrow);
@@ -1257,7 +1219,6 @@ async function confirmMove() {
   if(!targetDate||targetDate===ds(currentDate)) { toast('다른 날짜를 선택해주세요'); return; }
   const todo=todos[movingIdx];
   pushUndo(`"${todo.title}" 날짜 이동`);
-  // DB에서 날짜 변경
   sync('syncing');
   await sb.from('todos').update({date:targetDate}).eq('id',todo.id);
   sync('ok');
@@ -1266,7 +1227,6 @@ async function confirmMove() {
   toast(`📅 "${todo.title}" → ${targetDate} 로 이동했어요`);
 }
 
-// ── 미완료 이월 ──
 async function carryForward() {
   const incomplete=todos.filter(t=>!t.done);
   if(!incomplete.length) { toast('미완료 항목이 없어요'); return; }
@@ -1274,19 +1234,16 @@ async function carryForward() {
   const tomorrowStr=ds(tomorrow);
   if(!confirm(`미완료 항목 ${incomplete.length}개를 ${tomorrowStr}로 이월할까요?`)) return;
   sync('syncing');
-  // 내일 기존 항목 마지막 순서 파악
   const {data:existing}=await sb.from('todos').select('sort_order').eq('user_id',currentUser.id).eq('date',tomorrowStr).order('sort_order',{ascending:false}).limit(1);
   let startOrder=(existing&&existing[0])?existing[0].sort_order+1:0;
   for(const t of incomplete) {
     await sb.from('todos').update({date:tomorrowStr,sort_order:startOrder++,done:false}).eq('id',t.id);
   }
-  // 현재 날짜에서 제거
   todos=todos.filter(t=>t.done);
   sync('ok'); renderTodos();
   toast(`⏭ 미완료 ${incomplete.length}개를 내일로 이월했어요!`);
 }
 
-// ── Detail Modal ──
 function openModal(idx) {
   editingId=idx; const todo=todos[idx]; selectedModalCat=todo.cat_id||'';
   document.getElementById('modal-title-input').value=todo.title;
@@ -1320,12 +1277,11 @@ async function saveModal() {
   todos[editingId].body=document.getElementById('modal-body-input').value;
   todos[editingId].deadline=document.getElementById('modal-deadline-input').value;
   todos[editingId].cat_id=selectedModalCat;
-  const todoToSave=todos[editingId]; // closeModal 전에 참조 저장
+  const todoToSave=todos[editingId];
   closeModal(); renderTodos();
   await saveTodo(todoToSave);
 }
 
-// ── Category Modal ──
 function openCatModal() { editingCats=categories.map(c=>({...c})); renderCatEditor(); document.getElementById('cat-modal-overlay').classList.add('open'); }
 function closeCatModal() { document.getElementById('cat-modal-overlay').classList.remove('open'); closeCp(); }
 function renderCatEditor() {
@@ -1350,8 +1306,7 @@ async function saveCats() {
   await saveCategoriesDb(); closeCatModal(); renderCatFilter(); renderTodos();
 }
 
-// ── Color Picker ──
-let cpMode = ''; // 'todo', 'tx', 'ev'
+let cpMode = '';
 function openCp(e, i, mode='todo') {
   e.stopPropagation(); cpTarget=i; cpMode=mode;
   const p=document.getElementById('cpicker'), sw=document.getElementById('cp-swatches');
@@ -1405,7 +1360,24 @@ function renderMiniCal() {
     const el=document.createElement('div'); el.className='mini-day'; el.textContent=d;
     if(dstr===todayStr) el.classList.add('today');
     if(dstr===ds(currentDate)) el.classList.add('selected');
-    el.onclick=()=>{currentDate=new Date(y,m,d);loadTodos();renderMiniCal();closeSidebar();};
+
+    // ── 🔧 수정된 부분: 현재 활성 탭에 맞게 날짜 동기화 ──
+    el.onclick=()=>{
+      const newDate=new Date(y,m,d);
+      currentDate=newDate;
+      const activeView=document.querySelector('.view.active');
+      if(activeView){
+        const vid=activeView.id;
+        if(vid==='view-income'){ txIncomeDate=new Date(newDate); renderTxView('income'); }
+        else if(vid==='view-expense'){ txExpenseDate=new Date(newDate); renderTxView('expense'); }
+        else if(vid==='view-event'){ evViewDate=new Date(newDate); renderEvView(); }
+        else if(vid==='view-todo'){ loadTodos(); }
+        else if(vid==='view-cal'){ calViewDate=new Date(newDate); renderCalView(); }
+        else if(vid==='view-dash'){ renderDash(); }
+      } else { loadTodos(); }
+      renderMiniCal(); closeSidebar();
+    };
+    // ─────────────────────────────────────────────────────
     grid.appendChild(el);
   }
 }
@@ -1414,14 +1386,12 @@ document.getElementById('mini-next').onclick=()=>{miniCalDate.setMonth(miniCalDa
 document.getElementById('prev-day').onclick=()=>{currentDate.setDate(currentDate.getDate()-1);miniCalDate=new Date(currentDate);loadTodos();};
 document.getElementById('next-day').onclick=()=>{currentDate.setDate(currentDate.getDate()+1);miniCalDate=new Date(currentDate);loadTodos();};
 
-// ── 대한민국 공휴일 (공공데이터포털 API) ──
 const HOLIDAY_API_KEY = '9f2f1d88e7aa15a8ffdcfba37515da7d79709fe83dffa843c4be0099471a5927';
-const holidayCache = {}; // 연도별 캐시
+const holidayCache = {};
 
 async function fetchHolidays(y, m) {
   const cacheKey = `${y}-${m}`;
   if(holidayCache[cacheKey]) return holidayCache[cacheKey];
-
   const result = {};
   try {
     const url = `https://apis.data.go.kr/B090041/openapi/service/SpcdeInfoService/getRestDeInfo`
@@ -1438,7 +1408,6 @@ async function fetchHolidays(y, m) {
       });
     }
   } catch(e) {
-    // API 실패 시 하드코딩 폴백
     return getFallbackHolidays(y, m);
   }
   holidayCache[cacheKey] = result;
@@ -1464,10 +1433,10 @@ function getFallbackHolidays(y, m) {
     if(lh.buddha) all[lh.buddha]='부처님오신날';
     if(lh.labor) all[lh.labor]='근로자의날';
   }
-  // 해당 월만 필터링
   const mStr = String(m).padStart(2,'0');
   return Object.fromEntries(Object.entries(all).filter(([k])=>k.startsWith(`${y}-${mStr}`)));
 }
+
 const calLayers = { todo: true, event: true, income: true, expense: true };
 
 function toggleCalLayer(type) {
@@ -1494,7 +1463,7 @@ async function renderCalView() {
   for(let i=0;i<first.getDay();i++){const c=document.createElement('div');c.className='cal-cell other-month';grid.appendChild(c);}
   for(let d=1;d<=last.getDate();d++){
     const dstr=`${y}-${String(m+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
-    const dow=new Date(y,m,d).getDay(); // 0=일, 6=토
+    const dow=new Date(y,m,d).getDay();
     const holidayName=holidays[dstr];
     const cell=document.createElement('div'); cell.className='cal-cell';
     if(dstr===todayStr) cell.classList.add('today');
@@ -1503,7 +1472,6 @@ async function renderCalView() {
     if(dow===6) cell.classList.add('saturday');
     if(holidayName) cell.classList.add('holiday');
     const num=document.createElement('div'); num.className='cal-num'; num.textContent=d; cell.appendChild(num);
-    // 공휴일 이름 표시
     if(holidayName){
       const hl=document.createElement('div'); hl.className='cal-holiday-label'; hl.textContent=holidayName; cell.appendChild(hl);
     }
@@ -1513,7 +1481,6 @@ async function renderCalView() {
     const maxItems=6;
     let totalItems=0;
 
-    // 일정 (배경색 칩으로 표시)
     if(calLayers.event){
       (evData||[]).forEach(ev=>{
         if(dstr<ev.start_date||dstr>ev.end_date) return;
@@ -1531,7 +1498,6 @@ async function renderCalView() {
         wrap.appendChild(chip); itemCount++;
       });
     }
-    // 할 일
     if(calLayers.todo){
       const dt=monthData[dstr]||[];
       totalItems+=dt.length;
@@ -1542,7 +1508,6 @@ async function renderCalView() {
         chip.style.borderLeftColor=cat?cat.color:'var(--accent)'; chip.textContent=t.title; wrap.appendChild(chip); itemCount++;
       });
     }
-    // 수입
     if(calLayers.income){
       const incList=(txData||[]).filter(t=>t.date===dstr&&t.type==='income');
       totalItems+=incList.length;
@@ -1552,7 +1517,6 @@ async function renderCalView() {
         chip.textContent=`💰 ${fmtAmt(t.amount)}`; wrap.appendChild(chip); itemCount++;
       });
     }
-    // 지출
     if(calLayers.expense){
       const expList=(txData||[]).filter(t=>t.date===dstr&&t.type==='expense');
       totalItems+=expList.length;
@@ -1616,7 +1580,6 @@ async function loadMonthEvents(y,m) {
 document.getElementById('cal-prev').onclick=()=>{calViewDate.setMonth(calViewDate.getMonth()-1);renderCalView();};
 document.getElementById('cal-next').onclick=()=>{calViewDate.setMonth(calViewDate.getMonth()+1);renderCalView();};
 
-// ── View switch ──
 function switchView(v) {
   document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
   ['hnav-dash','hnav-todo','hnav-cal','hnav-event','hnav-income','hnav-expense',
@@ -1654,7 +1617,6 @@ function switchView(v) {
   }
 }
 
-// ── 수입/지출 State ──
 let txIncomeDate = new Date();
 let txExpenseDate = new Date();
 let txIncomeCats = [];
@@ -1668,7 +1630,6 @@ function getTxDate(type) { return type==='income' ? txIncomeDate : txExpenseDate
 function getTxCats(type) { return type==='income' ? txIncomeCats : txExpenseCats; }
 function gcTx(type, id) { return getTxCats(type).find(c=>c.id===id)||null; }
 
-// ── 환경설정 ──
 const DEFAULT_MENU_ORDER = [
   { id:'dash',  label:'🏠 홈' },
   { id:'todo',  label:'📋 할 일 목록' },
@@ -1686,7 +1647,6 @@ function loadMenuOrder() {
     if(saved) {
       const ids = JSON.parse(saved);
       menuOrder = ids.map(id=>DEFAULT_MENU_ORDER.find(m=>m.id===id)).filter(Boolean);
-      // 혹시 새로 추가된 메뉴가 있으면 뒤에 붙임
       DEFAULT_MENU_ORDER.forEach(m=>{ if(!menuOrder.find(x=>x.id===m.id)) menuOrder.push(m); });
     }
   } catch(e) {}
@@ -1695,12 +1655,10 @@ function loadMenuOrder() {
 function applyMenuOrder() {
   const headerRight = document.getElementById('header-right');
   const sidebarNav = document.getElementById('sidebar-nav');
-  // 헤더 버튼 순서 재배치
   menuOrder.forEach(m=>{
     const btn = document.getElementById(`hnav-${m.id}`);
     if(btn) headerRight.insertBefore(btn, document.getElementById('logout-btn'));
   });
-  // 사이드바 버튼 순서 재배치
   menuOrder.forEach(m=>{
     const btn = document.getElementById(`snav-${m.id}`);
     if(btn) sidebarNav.appendChild(btn);
@@ -1745,7 +1703,6 @@ function saveSettings() {
   toast('✅ 메뉴 순서가 저장됐어요!');
 }
 
-// ── Dashboard ──
 async function renderDash() {
   const now=new Date();
   const hours=now.getHours();
@@ -1758,7 +1715,6 @@ async function renderDash() {
   const from=`${y}-${String(m).padStart(2,'0')}-01`;
   const to=`${y}-${String(m).padStart(2,'0')}-31`;
 
-  // ── 오늘 할 일 목록 ──
   const {data:todayTodosData}=await sb.from('todos').select('*')
     .eq('user_id',currentUser.id).eq('date',todayStr2).order('sort_order');
   const todayTodos=todayTodosData||[];
@@ -1785,7 +1741,6 @@ async function renderDash() {
     todoListEl.innerHTML=`<div class="dash-empty">오늘 할 일 없음</div>`;
   }
 
-  // ── 오늘 일정 목록 ──
   const {data:evData}=await sb.from('events').select('*').eq('user_id',currentUser.id)
     .lte('start_date',todayStr2).gte('end_date',todayStr2).order('start_date');
   const evList=evData||[];
@@ -1810,7 +1765,6 @@ async function renderDash() {
     evListEl.innerHTML=`<div class="dash-empty">오늘 일정 없음</div>`;
   }
 
-  // ── 수입/지출 ──
   const {data:txData}=await sb.from('transactions').select('*')
     .eq('user_id',currentUser.id).gte('date',from).lte('date',to);
   const txList=txData||[];
@@ -1824,7 +1778,6 @@ async function renderDash() {
   document.getElementById('dash-expense-month').textContent=fmtAmt(expenseMonth);
   document.getElementById('dash-expense-today').textContent=fmtAmt(expenseToday);
 
-  // 오늘 수입 목록
   const incListEl=document.getElementById('dash-income-list');
   incListEl.innerHTML='';
   const todayIncome=txList.filter(t=>t.type==='income'&&t.date===todayStr2);
@@ -1844,7 +1797,6 @@ async function renderDash() {
     incListEl.innerHTML=`<div class="dash-empty">오늘 수입 없음</div>`;
   }
 
-  // 오늘 지출 목록
   const expListEl=document.getElementById('dash-expense-list');
   expListEl.innerHTML='';
   const todayExpense=txList.filter(t=>t.type==='expense'&&t.date===todayStr2);
@@ -1864,6 +1816,7 @@ async function renderDash() {
     expListEl.innerHTML=`<div class="dash-empty">오늘 지출 없음</div>`;
   }
 }
+
 let evViewDate = new Date();
 let evCats = [];
 let editingEvCats = [];
@@ -1888,12 +1841,10 @@ async function loadEvents(y, m) {
 
 async function renderEvView() {
   const dayStr=ds(evViewDate);
-  const days=['일','월','화','수','목','금','토'];
   document.getElementById('ev-date-label').textContent=dayStr===todayStr?"TODAY'S SCHEDULE":"SCHEDULE";
   document.getElementById('event-date-display').textContent=fmtDate(evViewDate);
   await loadEvCats();
   renderEvCatFilter();
-  // 해당 날짜를 포함하는 일정 조회
   const {data}=await sb.from('events').select('*').eq('user_id',currentUser.id)
     .lte('start_date',dayStr).gte('end_date',dayStr).order('start_date');
   const list=data||[];
@@ -2016,7 +1967,6 @@ async function deleteEv(id) {
   toast('🗑 삭제됐어요');
 }
 
-// ── 일정 카테고리 모달 ──
 function openEvCatModal() {
   editingEvCats=evCats.map(c=>({...c}));
   renderEvCatEditor();
@@ -2087,7 +2037,6 @@ async function renderTxView(type) {
   document.getElementById(`${type}-month-total`).textContent=fmtAmt(monthTotal);
   document.getElementById(`${type}-day-total`).textContent=fmtAmt(dayTotal);
 
-  // 카테고리 필터 적용
   const activeCat=activeTxCatFilter[type];
   const filtered=activeCat===''?dayList:dayList.filter(t=>t.cat_id===activeCat);
 
@@ -2204,7 +2153,6 @@ async function deleteTx(id, type) {
   toast('🗑 삭제됐어요');
 }
 
-// ── TX 상세 모달 ──
 let editingTxId=null, editingTxType=null, selectedTxModalCat='';
 function openTxModal(t, type) {
   editingTxId=t.id; editingTxType=type;
@@ -2247,7 +2195,6 @@ async function saveTxModal() {
   toast('✅ 저장됐어요');
 }
 
-// ── 수입/지출 카테고리 모달 ──
 function openTxCatModal(type) {
   currentTxCatType=type;
   editingTxCats=getTxCats(type).map(c=>({...c}));
@@ -2286,22 +2233,18 @@ async function saveTxCats() {
   toast('✅ 카테고리 저장됐어요');
 }
 
-// 날짜 이동
 document.getElementById('income-prev-day').onclick=()=>{txIncomeDate.setDate(txIncomeDate.getDate()-1);renderTxView('income');};
 document.getElementById('income-next-day').onclick=()=>{txIncomeDate.setDate(txIncomeDate.getDate()+1);renderTxView('income');};
 document.getElementById('expense-prev-day').onclick=()=>{txExpenseDate.setDate(txExpenseDate.getDate()-1);renderTxView('expense');};
 document.getElementById('expense-next-day').onclick=()=>{txExpenseDate.setDate(txExpenseDate.getDate()+1);renderTxView('expense');};
 
-// Enter 키
 document.getElementById('income-title-input').addEventListener('keydown',e=>{if(e.key==='Enter')addTransaction('income');});
 document.getElementById('expense-title-input').addEventListener('keydown',e=>{if(e.key==='Enter')addTransaction('expense');});
 
-// ── Sidebar ──
 function toggleSidebar() { document.getElementById('sidebar').classList.toggle('open'); document.getElementById('sidebar-overlay').classList.toggle('open'); }
 function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('open'); }
 window.addEventListener('resize',()=>{ if(!isMob()) closeSidebar(); });
 
-// ── Keyboard ──
 document.getElementById('new-todo-input').addEventListener('keydown',e=>{if(e.key==='Enter')addTodo();});
 document.getElementById('login-pw').addEventListener('keydown',e=>{if(e.key==='Enter')submitAuth();});
 document.addEventListener('keydown',e=>{
@@ -2309,7 +2252,6 @@ document.addEventListener('keydown',e=>{
   if(e.key==='z'&&(e.ctrlKey||e.metaKey)){e.preventDefault();undo();}
 });
 
-// ── Auth 초기화 ──
 const loadingTimeout = setTimeout(() => {
   document.getElementById('loading-screen').classList.add('hidden');
   document.getElementById('login-screen').classList.remove('hidden');
@@ -2343,7 +2285,6 @@ const loadingTimeout = setTimeout(() => {
   document.getElementById('loading-screen').classList.add('hidden');
 })();
 
-// ── Auth 상태 변경 감지 (로그인/로그아웃 시) ──
 sb.auth.onAuthStateChange(async(event,session)=>{
   if(event==='SIGNED_IN' && session?.user && !currentUser){
     currentUser=session.user;
