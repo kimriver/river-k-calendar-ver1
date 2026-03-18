@@ -549,10 +549,10 @@ body { font-family:var(--font-main,'Noto Sans KR',sans-serif); background:var(--
 #cat-add-row:hover, #tx-cat-add-row:hover { border-color:var(--accent); color:var(--accent2); background:var(--accent-dim); }
 
 /* Color picker */
-#cpicker { position:fixed; z-index:400; background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:13px; box-shadow:var(--shadow); display:none; min-width:185px; }
+#cpicker { position:fixed; z-index:400; background:var(--bg2); border:1px solid var(--border); border-radius:12px; padding:13px; box-shadow:var(--shadow); display:none; min-width:220px; max-height:320px; overflow-y:auto; }
 #cpicker.open { display:block; }
 #cpicker h4 { font-size:10px; color:var(--text3); text-transform:uppercase; letter-spacing:1px; margin-bottom:9px; font-family:'Space Mono',monospace; }
-#cp-swatches { display:grid; grid-template-columns:repeat(5,1fr); gap:5px; margin-bottom:9px; }
+#cp-swatches { display:grid; grid-template-columns:repeat(6,1fr); gap:5px; margin-bottom:9px; }
 .cp-sw { width:26px; height:26px; border-radius:6px; cursor:pointer; border:2px solid transparent; transition:all 0.15s; }
 .cp-sw:hover { transform:scale(1.15); border-color:rgba(255,255,255,0.3); }
 .cp-sw.selected { border-color:#fff; }
@@ -1273,10 +1273,34 @@ function toggleTimeDropdown() {
 }
 
 const COLORS = [
-  '#f87171','#fb923c','#fbbf24','#a3e635','#4ade80',
-  '#34d399','#22d3ee','#60a5fa','#818cf8','#a78bfa',
-  '#e879f9','#f472b6','#94a3b8','#f97316','#06b6d4',
-  '#6366f1','#ec4899','#84cc16','#2dd4bf','#64748b'
+  // 레드 계열
+  '#fca5a5','#f87171','#ef4444','#dc2626',
+  // 오렌지 계열
+  '#fdba74','#fb923c','#f97316','#ea580c',
+  // 앰버/옐로 계열
+  '#fde68a','#fbbf24','#f59e0b','#d97706',
+  // 라임/그린 계열
+  '#bef264','#a3e635','#84cc16','#65a30d',
+  // 에메랄드/그린 계열
+  '#6ee7b7','#4ade80','#22c55e','#16a34a',
+  // 틸/시안 계열
+  '#99f6e4','#34d399','#2dd4bf','#0d9488',
+  '#67e8f9','#22d3ee','#06b6d4','#0891b2',
+  // 블루 계열
+  '#93c5fd','#60a5fa','#3b82f6','#2563eb',
+  // 인디고 계열
+  '#a5b4fc','#818cf8','#6366f1','#4f46e5',
+  // 바이올렛/퍼플 계열
+  '#c4b5fd','#a78bfa','#8b5cf6','#7c3aed',
+  // 퍼플/핑크 계열
+  '#f0abfc','#e879f9','#d946ef','#a21caf',
+  // 핑크/로즈 계열
+  '#f9a8d4','#f472b6','#ec4899','#db2777',
+  '#fda4af','#fb7185','#f43f5e','#e11d48',
+  // 뉴트럴/슬레이트
+  '#cbd5e1','#94a3b8','#64748b','#475569',
+  // 웜 뉴트럴
+  '#d4c5a9','#b8a98a','#8b7355','#6b5a3e',
 ];
 
 function ds(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`; }
@@ -1760,8 +1784,13 @@ function openCp(e, i, mode='todo') {
   inp.value=cur; prev.style.background=cur;
   inp.oninput=()=>{ if(/^#[0-9a-fA-F]{6}$/.test(inp.value)){prev.style.background=inp.value;applyColor(inp.value);} };
   const rect=e.target.getBoundingClientRect();
-  p.style.left=Math.min(rect.left,window.innerWidth-200)+'px';
-  p.style.top=Math.min(rect.bottom+6,window.innerHeight-180)+'px';
+  const pickerW=230, pickerH=320;
+  const left=Math.min(rect.left, window.innerWidth-pickerW-8);
+  // 아래 공간이 부족하면 위로 표시
+  const spaceBelow=window.innerHeight-rect.bottom-8;
+  const top=spaceBelow>pickerH ? rect.bottom+6 : rect.top-pickerH-6;
+  p.style.left=Math.max(8,left)+'px';
+  p.style.top=Math.max(8,top)+'px';
   p.classList.add('open');
 }
 function applyColor(c) {
