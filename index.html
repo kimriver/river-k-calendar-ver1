@@ -231,6 +231,39 @@ body { font-family:var(--font-main,'Noto Sans KR',sans-serif); background:var(--
 .todo-item.done .todo-title { text-decoration:line-through; color:var(--text3); }
 .todo-meta { display:flex; gap:6px; margin-top:2px; align-items:center; }
 .todo-time { font-size:11px; color:var(--accent2); font-weight:600; background:var(--accent-dim); padding:1px 7px; border-radius:10px; }
+
+/* ── 시간 선택 드롭다운 ── */
+.time-dropdown-wrap { position:relative; flex-shrink:0; }
+.time-dropdown-btn {
+  display:flex; align-items:center; gap:5px;
+  padding:10px 10px; border-radius:var(--radius);
+  border:1px solid var(--border); background:var(--bg3);
+  color:var(--text2); font-family:'Noto Sans KR',sans-serif;
+  font-size:12px; cursor:pointer; white-space:nowrap;
+  transition:all 0.15s; min-width:72px;
+}
+.time-dropdown-btn:hover { border-color:var(--accent); color:var(--accent2); }
+.time-dropdown-btn.has-time { border-color:var(--accent); color:var(--accent2); background:var(--accent-dim); }
+.time-dropdown-menu {
+  position:absolute; bottom:calc(100% + 6px); left:0;
+  background:var(--bg2); border:1px solid var(--border);
+  border-radius:10px; box-shadow:var(--shadow);
+  z-index:200; width:130px; max-height:260px;
+  overflow-y:auto; display:none;
+  scrollbar-width:thin;
+}
+.time-dropdown-menu::-webkit-scrollbar { width:4px; }
+.time-dropdown-menu::-webkit-scrollbar-thumb { background:var(--border); border-radius:2px; }
+.time-dropdown-menu.open { display:block; animation:fadeUp 0.15s ease; }
+.time-dropdown-item {
+  display:flex; align-items:center; gap:8px;
+  padding:9px 14px; cursor:pointer; font-size:13px;
+  color:var(--text); font-family:'Space Mono',monospace;
+  transition:background 0.1s;
+}
+.time-dropdown-item:hover { background:var(--bg3); }
+.time-dropdown-item.selected { background:var(--accent-dim); color:var(--accent2); font-weight:600; }
+.time-dropdown-item.none-item { font-family:'Noto Sans KR',sans-serif; color:var(--text3); }
 .todo-deadline { font-size:11px; color:var(--text3); }
 .todo-deadline.urgent { color:var(--red); }
 .todo-deadline.soon { color:var(--yellow); }
@@ -695,6 +728,13 @@ body { font-family:var(--font-main,'Noto Sans KR',sans-serif); background:var(--
         <div id="todo-list-wrap"><div id="todo-list"></div></div>
         <div id="add-todo-bar">
           <input type="text" id="new-todo-input" placeholder="새 할 일 입력... (Enter)" maxlength="100">
+          <div class="time-dropdown-wrap" id="todo-time-dropdown-wrap">
+            <button class="time-dropdown-btn" id="todo-time-dropdown-btn" onclick="toggleTimeDropdown()">
+              <span id="todo-time-label">⏰ 시간</span>
+              <span style="font-size:9px;opacity:0.6">▲</span>
+            </button>
+            <div class="time-dropdown-menu" id="todo-time-dropdown-menu"></div>
+          </div>
           <div class="cat-dropdown-wrap" id="todo-cat-dropdown-wrap">
             <button class="cat-dropdown-btn" id="todo-cat-dropdown-btn" onclick="toggleCatDropdown('todo')">
               <span class="cdb-dot" id="todo-cdb-dot"></span>
@@ -1167,8 +1207,70 @@ const UNDO_LIMIT = 5;
 const todayStr = ds(new Date());
 let currentUser = null;
 
-// ── 인라인 드롭다운 선택 카테고리 상태 ──
+// ── 인라인 드롭다운 선택 카테고리/시간 상태 ──
 const inlineSelectedCat = { todo:'', income:'', expense:'', ev:'' };
+let inlineSelectedTime = ''; // 할 일 추가 바 시간 선택
+
+// ── 시간 드롭다운 (30분 단위) ──
+const TIME_OPTIONS = (()=>{
+  const opts = [];
+  for(let h=0; h<24; h++){
+    for(let m of [0,30]){
+      opts.push(`${String(h).padStart(2,'0')}:${String(m).padStart(2,'0')}`);
+    }
+  }
+  return opts;
+})();
+
+function fmtTime12(t) {
+  if(!t) return '';
+  const [h,m] = t.split(':').map(Number);
+  const ampm = h < 12 ? '오전' : '오후';
+  const h12 = h % 12 || 12;
+  return `${ampm} ${h12}:${String(m).padStart(2,'0')}`;
+}
+
+function renderTimeDropdown() {
+  const menu = document.getElementById('todo-time-dropdown-menu');
+  if(!menu) return;
+  menu.innerHTML = '';
+  const noneEl = document.createElement('div');
+  noneEl.className = 'time-dropdown-item none-item' + (!inlineSelectedTime ? ' selected' : '');
+  noneEl.textContent = '⏰ 시간 없음';
+  noneEl.onclick = (e) => { e.stopPropagation(); setInlineTime(''); };
+  menu.appendChild(noneEl);
+  TIME_OPTIONS.forEach(t => {
+    const item = document.createElement('div');
+    item.className = 'time-dropdown-item' + (inlineSelectedTime === t ? ' selected' : '');
+    item.textContent = fmtTime12(t);
+    item.onclick = (e) => { e.stopPropagation(); setInlineTime(t); };
+    menu.appendChild(item);
+  });
+  if(inlineSelectedTime) {
+    setTimeout(()=>{ const sel=menu.querySelector('.selected'); if(sel) sel.scrollIntoView({block:'center'}); },50);
+  }
+}
+
+function setInlineTime(t) {
+  inlineSelectedTime = t;
+  const label = document.getElementById('todo-time-label');
+  const btn   = document.getElementById('todo-time-dropdown-btn');
+  if(label) label.textContent = t ? `⏰ ${fmtTime12(t)}` : '⏰ 시간';
+  if(btn)   btn.classList.toggle('has-time', !!t);
+  document.getElementById('todo-time-dropdown-menu')?.classList.remove('open');
+}
+
+function toggleTimeDropdown() {
+  const menu = document.getElementById('todo-time-dropdown-menu');
+  if(!menu) return;
+  const isOpen = menu.classList.contains('open');
+  // 다른 드롭다운 모두 닫기
+  ['todo','income','expense','ev'].forEach(k => {
+    document.getElementById(`${k}-cat-dropdown-menu`)?.classList.remove('open');
+  });
+  if(!isOpen) { renderTimeDropdown(); menu.classList.add('open'); }
+  else { menu.classList.remove('open'); }
+}
 
 const COLORS = [
   '#f87171','#fb923c','#fbbf24','#a3e635','#4ade80',
@@ -1510,7 +1612,7 @@ async function addTodo() {
   sync('syncing');
   const {data,error}=await sb.from('todos').insert({
     user_id:currentUser.id, date:ds(currentDate),
-    title, body:'', done:false, deadline:'', time:'',
+    title, body:'', done:false, deadline:'', time:inlineSelectedTime||'',
     cat_id:inlineSelectedCat.todo||'', sort_order:todos.length
   }).select().single();
   inp.disabled=false; inp.focus();
@@ -1518,6 +1620,8 @@ async function addTodo() {
   const {data:fresh}=await sb.from('todos').select('*').eq('user_id',currentUser.id).eq('date',ds(currentDate)).order('sort_order');
   todos=fresh||[];
   pushUndo('추가');
+  // 시간 드롭다운 초기화
+  setInlineTime('');
   sync('ok'); renderTodos(); renderMiniCal();
 }
 
@@ -1689,6 +1793,10 @@ document.addEventListener('click',e=>{
     ['todo','income','expense','ev'].forEach(k => {
       document.getElementById(`${k}-cat-dropdown-menu`)?.classList.remove('open');
     });
+  }
+  // 시간 드롭다운 외부 클릭 시 닫기
+  if(!e.target.closest('.time-dropdown-wrap')) {
+    document.getElementById('todo-time-dropdown-menu')?.classList.remove('open');
   }
 });
 
