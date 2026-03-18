@@ -387,6 +387,22 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
   #sidebar.open { transform:translateX(0); box-shadow:var(--shadow); }
   .drag-handle { display:none; }
   .todo-actions { opacity:1 !important; }
+
+  /* ── 모바일 헤더 가로 스크롤 ── */
+  #header { justify-content:flex-start; padding:0 10px; gap:6px; overflow:hidden; }
+  #header-left { flex-shrink:0; gap:6px; }
+  #header-title { display:none; }
+  #header-right {
+    flex:1; min-width:0;
+    overflow-x:auto; overflow-y:hidden;
+    -webkit-overflow-scrolling:touch;
+    scrollbar-width:none;
+    gap:5px; padding:6px 0;
+  }
+  #header-right::-webkit-scrollbar { display:none; }
+  .hnav-btn { font-size:11px; padding:4px 10px; flex-shrink:0; }
+  #logout-btn { flex-shrink:0; font-size:10px; padding:4px 8px; }
+  #settings-btn { flex-shrink:0; }
 }
 
 /* Modals */
