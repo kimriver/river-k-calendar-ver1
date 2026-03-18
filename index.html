@@ -8,8 +8,10 @@
 <meta name="theme-color" content="#0a0a0f">
 <title>River'K Today</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.26.0"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Nanum+Gothic:wght@400;700&family=Nanum+Myeongjo:wght@400;700&family=Nanum+Gothic+Coding&family=Black+Han+Sans&family=Do+Hyeon&family=Jua&family=Gaegu:wght@300;400;700&family=Stylish&family=Cute+Font&family=Sunflower:wght@300;500;700&family=Space+Mono:wght@400;700&display=swap">
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&family=Nanum+Gothic:wght@400;700&family=Nanum+Myeongjo:wght@400;700&family=Nanum+Gothic+Coding&family=Black+Han+Sans&family=Do+Hyeon&family=Jua&family=Gaegu:wght@300;400;700&family=Stylish&family=Cute+Font&family=Sunflower:wght@300;500;700&family=Space+Mono:wght@400;700&display=swap');
 
 :root {
   --bg:#0a0a0f; --bg2:#12121a; --bg3:#1a1a25; --bg4:#22222f;
@@ -2720,17 +2722,18 @@ async function showApp(user) {
   document.getElementById('loading-screen').classList.add('hidden');
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('app-screen').classList.remove('hidden');
-  try { await loadCategories(); } catch(e) {}
-  try { await loadTxCats('income'); } catch(e) {}
-  try { await loadTxCats('expense'); } catch(e) {}
-  try { await loadEvCats(); } catch(e) {}
-  try { await loadTodos(); } catch(e) {}
+  try { await loadCategories(); } catch(e) { console.error('loadCategories 오류:', e); }
+  try { await loadTxCats('income'); } catch(e) { console.error('loadTxCats income 오류:', e); }
+  try { await loadTxCats('expense'); } catch(e) { console.error('loadTxCats expense 오류:', e); }
+  try { await loadEvCats(); } catch(e) { console.error('loadEvCats 오류:', e); }
+  try { await loadTodos(); } catch(e) { console.error('loadTodos 오류:', e); }
   loadMenuOrder();
   applyMenuOrder();
   loadTheme();
   loadFont();
   renderCatFilter();
   renderMiniCal();
+  console.log('showApp 완료 - todos:', todos.length, 'categories:', categories.length);
 }
 
 // Supabase 없으면 즉시 로그인 화면
@@ -2743,6 +2746,7 @@ else {
   // SIGNED_IN: 로그인 완료
   // SIGNED_OUT: 로그아웃
   sb.auth.onAuthStateChange(async(event, session) => {
+    console.log('Auth 이벤트:', event, '세션:', session?.user?.email || '없음');
     if((event === 'INITIAL_SESSION' || event === 'SIGNED_IN') && session?.user) {
       if(!appInitialized) {
         appInitialized = true;
