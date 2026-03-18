@@ -230,6 +230,7 @@ body { font-family:var(--font-main,'Noto Sans KR',sans-serif); background:var(--
 .todo-title:hover { color:var(--accent2); }
 .todo-item.done .todo-title { text-decoration:line-through; color:var(--text3); }
 .todo-meta { display:flex; gap:6px; margin-top:2px; align-items:center; }
+.todo-time { font-size:11px; color:var(--accent2); font-weight:600; background:var(--accent-dim); padding:1px 7px; border-radius:10px; }
 .todo-deadline { font-size:11px; color:var(--text3); }
 .todo-deadline.urgent { color:var(--red); }
 .todo-deadline.soon { color:var(--yellow); }
@@ -838,7 +839,16 @@ body { font-family:var(--font-main,'Noto Sans KR',sans-serif); background:var(--
     <div class="modal-bd">
       <div class="modal-field"><label>카테고리</label><div id="modal-cat-list"></div></div>
       <div class="modal-field"><label>본문 내용</label><textarea class="m-textarea" id="modal-body-input" placeholder="상세 내용..."></textarea></div>
-      <div class="modal-field"><label>마감일</label><input class="m-date" type="date" id="modal-deadline-input"></div>
+      <div class="modal-field" style="display:flex;gap:12px;flex-wrap:wrap;">
+        <div style="flex:1;min-width:130px;">
+          <label style="display:block;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;font-family:'Space Mono',monospace;">마감일</label>
+          <input class="m-date" type="date" id="modal-deadline-input">
+        </div>
+        <div style="flex:1;min-width:120px;">
+          <label style="display:block;font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px;font-family:'Space Mono',monospace;">시간</label>
+          <input class="m-date" type="time" id="modal-time-input" style="max-width:150px;">
+        </div>
+      </div>
     </div>
     <div class="modal-ft">
       <button class="mbtn sec" onclick="closeModal()">취소</button>
@@ -1328,7 +1338,7 @@ async function saveTodo(todo) {
   sync('syncing');
   await sb.from('todos').update({
     title:todo.title, body:todo.body, done:todo.done,
-    deadline:todo.deadline, cat_id:todo.cat_id, sort_order:todo.sort_order
+    deadline:todo.deadline, time:todo.time||'', cat_id:todo.cat_id, sort_order:todo.sort_order
   }).eq('id',todo.id);
   sync('ok');
 }
@@ -1425,7 +1435,14 @@ function renderTodos() {
   if(total-done>0) carryBtn.classList.add('visible');
   else carryBtn.classList.remove('visible');
 
-  const filtered=activeCatFilter===''?todos:todos.filter(t=>t.cat_id===activeCatFilter);
+  let filtered=activeCatFilter===''?todos:todos.filter(t=>t.cat_id===activeCatFilter);
+  // 시간 있는 항목 먼저, 그 다음 sort_order 순
+  filtered=[...filtered].sort((a,b)=>{
+    if(a.time&&!b.time) return -1;
+    if(!a.time&&b.time) return 1;
+    if(a.time&&b.time) return a.time.localeCompare(b.time);
+    return 0;
+  });
   if(!filtered.length){ list.innerHTML=`<div class="empty-state"><div class="emoji">${activeCatFilter?'🔍':'✨'}</div><p>${activeCatFilter?'이 카테고리에 할 일이 없어요':'할 일을 추가해보세요!'}</p></div>`; return; }
 
   list.innerHTML='';
@@ -1436,6 +1453,14 @@ function renderTodos() {
     div.className='todo-item'+(todo.done?' done':'');
     div.draggable=!isMob(); div.dataset.idx=ri;
     div.style.borderLeftColor=cat?cat.color:'var(--border)';
+    // 시간 포맷: 24h → 오전/오후 12h
+    const timeFmt = (t)=>{
+      if(!t) return '';
+      const [h,m]=t.split(':').map(Number);
+      const ampm=h<12?'오전':'오후';
+      const h12=h%12||12;
+      return `${ampm} ${h12}:${String(m).padStart(2,'0')}`;
+    };
     div.innerHTML=`
       <div class="drag-handle">⠿</div>
       <div class="todo-checkbox ${todo.done?'checked':''}"></div>
@@ -1443,6 +1468,7 @@ function renderTodos() {
       <div class="todo-content">
         <div class="todo-title">${esc(todo.title)}</div>
         <div class="todo-meta">
+          ${todo.time?`<span class="todo-time">⏰ ${timeFmt(todo.time)}</span>`:''}
           ${dl?`<span class="todo-deadline ${dl.cls}">📅 ${dl.label}</span>`:''}
           ${todo.body?`<span class="todo-body-preview">${esc(todo.body)}</span>`:''}
         </div>
@@ -1484,7 +1510,7 @@ async function addTodo() {
   sync('syncing');
   const {data,error}=await sb.from('todos').insert({
     user_id:currentUser.id, date:ds(currentDate),
-    title, body:'', done:false, deadline:'',
+    title, body:'', done:false, deadline:'', time:'',
     cat_id:inlineSelectedCat.todo||'', sort_order:todos.length
   }).select().single();
   inp.disabled=false; inp.focus();
@@ -1557,6 +1583,7 @@ function openModal(idx) {
   document.getElementById('modal-title-input').value=todo.title;
   document.getElementById('modal-body-input').value=todo.body||'';
   document.getElementById('modal-deadline-input').value=todo.deadline||'';
+  document.getElementById('modal-time-input').value=todo.time||'';
   renderModalCats();
   document.getElementById('modal-overlay').classList.add('open');
   setTimeout(()=>document.getElementById('modal-title-input').focus(),100);
@@ -1584,6 +1611,7 @@ async function saveModal() {
   todos[editingId].title=title;
   todos[editingId].body=document.getElementById('modal-body-input').value;
   todos[editingId].deadline=document.getElementById('modal-deadline-input').value;
+  todos[editingId].time=document.getElementById('modal-time-input').value;
   todos[editingId].cat_id=selectedModalCat;
   const todoToSave=todos[editingId];
   closeModal(); renderTodos();
@@ -1822,7 +1850,9 @@ async function renderCalView() {
         if(itemCount>=maxItems) return;
         const cat=gc(t.cat_id);
         const chip=document.createElement('div'); chip.className='cal-chip'+(t.done?' done':'');
-        chip.style.borderLeftColor=cat?cat.color:'var(--accent)'; chip.textContent=t.title; wrap.appendChild(chip); itemCount++;
+        chip.style.borderLeftColor=cat?cat.color:'var(--accent)';
+        chip.textContent=t.time?`${t.time.slice(0,5)} ${t.title}`:t.title;
+        wrap.appendChild(chip); itemCount++;
       });
     }
     if(calLayers.income){
@@ -2184,7 +2214,7 @@ async function renderDash() {
       item.innerHTML=`
         ${cat?`<span class="todo-inline-cat" style="background:${cat.color};font-size:9px;padding:1px 6px">${esc(cat.name)}</span>`:''}
         <div class="dash-item-title${t.done?' done':''}">${esc(t.title)}</div>
-        ${t.deadline?`<div class="dash-item-sub">${t.deadline}</div>`:''}`;
+        ${t.time||t.deadline?`<div class="dash-item-sub">${t.time?`⏰ ${t.time.slice(0,5)}`:''}${t.time&&t.deadline?' · ':''}${t.deadline||''}</div>`:''}`;
       todoListEl.appendChild(item);
     });
   } else {
