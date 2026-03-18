@@ -275,7 +275,7 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
 .tx-item-title:hover { color:var(--accent2); }
 .tx-item-memo-preview { font-size:11px; color:var(--text3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; }
 .tx-add-bar { padding:10px 22px; border-top:1px solid var(--border); display:flex; gap:8px; flex-shrink:0; }
-.tx-amount-input { width:120px; background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); padding:10px 14px; color:var(--text); font-family:'Space Mono',monospace; font-size:14px; outline:none; transition:border-color 0.2s; flex-shrink:0; }
+.tx-amount-input { width:110px; background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); padding:10px 14px; color:var(--text); font-family:'Space Mono',monospace; font-size:14px; outline:none; transition:border-color 0.2s; flex-shrink:0; }
 .tx-amount-input:focus { border-color:var(--accent); }
 .tx-memo-input { flex:1; background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); padding:10px 14px; color:var(--text); font-family:'Noto Sans KR',sans-serif; font-size:14px; outline:none; transition:border-color 0.2s; min-width:0; }
 .tx-memo-input:focus { border-color:var(--accent); }
@@ -283,6 +283,47 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
 .tx-add-btn { border:none; border-radius:var(--radius); color:white; padding:10px 16px; cursor:pointer; font-family:'Noto Sans KR',sans-serif; font-size:14px; font-weight:500; transition:all 0.2s; white-space:nowrap; flex-shrink:0; }
 .income-btn { background:#22c55e; }
 .income-btn:hover { background:#4ade80; }
+
+/* ── 인라인 카테고리 드롭다운 ── */
+.cat-dropdown-wrap { position:relative; flex-shrink:0; }
+.cat-dropdown-btn {
+  display:flex; align-items:center; gap:5px;
+  padding:10px 10px; border-radius:var(--radius);
+  border:1px solid var(--border); background:var(--bg3);
+  color:var(--text2); font-family:'Noto Sans KR',sans-serif;
+  font-size:12px; cursor:pointer; white-space:nowrap;
+  transition:all 0.15s; min-width:72px; max-width:100px;
+  overflow:hidden;
+}
+.cat-dropdown-btn:hover { border-color:var(--accent); color:var(--accent2); }
+.cat-dropdown-btn .cdb-dot {
+  width:9px; height:9px; border-radius:50%; flex-shrink:0;
+  background:var(--text3); transition:background 0.2s;
+}
+.cat-dropdown-btn .cdb-label {
+  flex:1; overflow:hidden; text-overflow:ellipsis;
+}
+.cat-dropdown-btn .cdb-arrow { font-size:9px; flex-shrink:0; opacity:0.6; }
+.cat-dropdown-menu {
+  position:absolute; bottom:calc(100% + 6px); left:0;
+  background:var(--bg2); border:1px solid var(--border);
+  border-radius:10px; box-shadow:var(--shadow);
+  z-index:200; min-width:130px; max-width:180px;
+  overflow:hidden; display:none;
+}
+.cat-dropdown-menu.open { display:block; animation:fadeUp 0.15s ease; }
+.cat-dropdown-item {
+  display:flex; align-items:center; gap:8px;
+  padding:9px 12px; cursor:pointer; font-size:13px;
+  color:var(--text); font-family:'Noto Sans KR',sans-serif;
+  transition:background 0.1s; white-space:nowrap;
+}
+.cat-dropdown-item:hover { background:var(--bg3); }
+.cat-dropdown-item.selected { background:var(--accent-dim); color:var(--accent2); }
+.cat-dropdown-item .cdi-dot {
+  width:9px; height:9px; border-radius:50%; flex-shrink:0;
+}
+.cat-dropdown-divider { height:1px; background:var(--border); margin:3px 0; }
 .expense-btn { background:#ef4444; }
 .expense-btn:hover { background:#f87171; }
 .tx-empty { text-align:center; padding:60px 20px; color:var(--text3); }
@@ -631,6 +672,14 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
         <div id="todo-list-wrap"><div id="todo-list"></div></div>
         <div id="add-todo-bar">
           <input type="text" id="new-todo-input" placeholder="새 할 일 입력... (Enter)" maxlength="100">
+          <div class="cat-dropdown-wrap" id="todo-cat-dropdown-wrap">
+            <button class="cat-dropdown-btn" id="todo-cat-dropdown-btn" onclick="toggleCatDropdown('todo')">
+              <span class="cdb-dot" id="todo-cdb-dot"></span>
+              <span class="cdb-label" id="todo-cdb-label">카테고리</span>
+              <span class="cdb-arrow">▲</span>
+            </button>
+            <div class="cat-dropdown-menu" id="todo-cat-dropdown-menu"></div>
+          </div>
           <button id="add-btn" onclick="addTodo()">추가</button>
         </div>
       </div>
@@ -675,6 +724,14 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
         <div class="tx-list-wrap" id="event-list"></div>
         <div class="tx-add-bar">
           <input type="text" class="tx-memo-input" id="event-title-input" placeholder="일정 제목 입력... (Enter)" maxlength="50">
+          <div class="cat-dropdown-wrap" id="ev-cat-dropdown-wrap">
+            <button class="cat-dropdown-btn" id="ev-cat-dropdown-btn" onclick="toggleCatDropdown('ev')">
+              <span class="cdb-dot" id="ev-cdb-dot"></span>
+              <span class="cdb-label" id="ev-cdb-label">카테고리</span>
+              <span class="cdb-arrow">▲</span>
+            </button>
+            <div class="cat-dropdown-menu" id="ev-cat-dropdown-menu"></div>
+          </div>
           <button class="tx-add-btn" style="background:var(--accent)" onclick="openAddEventModal()">+ 추가</button>
         </div>
       </div>
@@ -699,6 +756,14 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
         <div class="tx-list-wrap" id="income-list"></div>
         <div class="tx-add-bar">
           <input type="text" class="tx-memo-input" id="income-title-input" placeholder="제목 입력... (Enter)" maxlength="50">
+          <div class="cat-dropdown-wrap" id="income-cat-dropdown-wrap">
+            <button class="cat-dropdown-btn" id="income-cat-dropdown-btn" onclick="toggleCatDropdown('income')">
+              <span class="cdb-dot" id="income-cdb-dot"></span>
+              <span class="cdb-label" id="income-cdb-label">카테고리</span>
+              <span class="cdb-arrow">▲</span>
+            </button>
+            <div class="cat-dropdown-menu" id="income-cat-dropdown-menu"></div>
+          </div>
           <input type="number" class="tx-amount-input" id="income-amount-input" placeholder="금액" min="0">
           <button class="tx-add-btn income-btn" onclick="addTransaction('income')">추가</button>
         </div>
@@ -724,6 +789,14 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
         <div class="tx-list-wrap" id="expense-list"></div>
         <div class="tx-add-bar">
           <input type="text" class="tx-memo-input" id="expense-title-input" placeholder="제목 입력... (Enter)" maxlength="50">
+          <div class="cat-dropdown-wrap" id="expense-cat-dropdown-wrap">
+            <button class="cat-dropdown-btn" id="expense-cat-dropdown-btn" onclick="toggleCatDropdown('expense')">
+              <span class="cdb-dot" id="expense-cdb-dot"></span>
+              <span class="cdb-label" id="expense-cdb-label">카테고리</span>
+              <span class="cdb-arrow">▲</span>
+            </button>
+            <div class="cat-dropdown-menu" id="expense-cat-dropdown-menu"></div>
+          </div>
           <input type="number" class="tx-amount-input" id="expense-amount-input" placeholder="금액" min="0">
           <button class="tx-add-btn expense-btn" onclick="addTransaction('expense')">추가</button>
         </div>
@@ -1038,6 +1111,9 @@ const UNDO_LIMIT = 5;
 const todayStr = ds(new Date());
 let currentUser = null;
 
+// ── 인라인 드롭다운 선택 카테고리 상태 ──
+const inlineSelectedCat = { todo:'', income:'', expense:'', ev:'' };
+
 const COLORS = [
   '#f87171','#fb923c','#fbbf24','#a3e635','#4ade80',
   '#34d399','#22d3ee','#60a5fa','#818cf8','#a78bfa',
@@ -1077,6 +1153,85 @@ function toast(msg) {
 }
 
 function handleOC(e,id,fn) { if(e.target.id===id) fn(); }
+
+// ══════════════════════════════════════
+//  인라인 카테고리 드롭다운
+// ══════════════════════════════════════
+
+function getCatsForDropdown(key) {
+  if(key==='todo') return categories;
+  if(key==='ev')   return evCats;
+  return getTxCats(key);
+}
+
+function renderCatDropdown(key) {
+  const menu = document.getElementById(`${key}-cat-dropdown-menu`);
+  if(!menu) return;
+  const cats = getCatsForDropdown(key);
+  const selected = inlineSelectedCat[key];
+  menu.innerHTML = '';
+
+  const noneItem = document.createElement('div');
+  noneItem.className = 'cat-dropdown-item' + (selected===''?' selected':'');
+  noneItem.innerHTML = `<span class="cdi-dot" style="background:var(--text3)"></span> 없음`;
+  noneItem.onclick = (e) => { e.stopPropagation(); setInlineCat(key, ''); };
+  menu.appendChild(noneItem);
+
+  if(cats.length) {
+    const div = document.createElement('div');
+    div.className = 'cat-dropdown-divider';
+    menu.appendChild(div);
+  }
+
+  cats.forEach(cat => {
+    const item = document.createElement('div');
+    item.className = 'cat-dropdown-item' + (selected===cat.id?' selected':'');
+    item.innerHTML = `<span class="cdi-dot" style="background:${cat.color}"></span> ${cat.name.replace(/&/g,'&amp;').replace(/</g,'&lt;')}`;
+    item.onclick = (e) => { e.stopPropagation(); setInlineCat(key, cat.id, cat); };
+    menu.appendChild(item);
+  });
+}
+
+function setInlineCat(key, catId, cat=null) {
+  inlineSelectedCat[key] = catId;
+  const dot   = document.getElementById(`${key}-cdb-dot`);
+  const label = document.getElementById(`${key}-cdb-label`);
+  if(dot && label) {
+    dot.style.background = cat ? cat.color : 'var(--text3)';
+    label.textContent    = cat ? cat.name  : '카테고리';
+  }
+  closeCatDropdown(key);
+}
+
+function toggleCatDropdown(key) {
+  const menu = document.getElementById(`${key}-cat-dropdown-menu`);
+  if(!menu) return;
+  const isOpen = menu.classList.contains('open');
+  ['todo','income','expense','ev'].forEach(k => {
+    document.getElementById(`${k}-cat-dropdown-menu`)?.classList.remove('open');
+  });
+  if(!isOpen) {
+    renderCatDropdown(key);
+    menu.classList.add('open');
+  }
+}
+
+function closeCatDropdown(key) {
+  document.getElementById(`${key}-cat-dropdown-menu`)?.classList.remove('open');
+}
+
+function refreshInlineDropdownBtn(key) {
+  const selected = inlineSelectedCat[key];
+  const cats = getCatsForDropdown(key);
+  const cat = cats.find(c=>c.id===selected);
+  const dot   = document.getElementById(`${key}-cdb-dot`);
+  const label = document.getElementById(`${key}-cdb-label`);
+  if(dot && label) {
+    dot.style.background = cat ? cat.color : 'var(--text3)';
+    label.textContent    = cat ? cat.name  : '카테고리';
+  }
+  if(!cat) inlineSelectedCat[key] = '';
+}
 
 let authTab = 'login';
 function setTab(t) {
@@ -1289,7 +1444,7 @@ async function addTodo() {
   const {data,error}=await sb.from('todos').insert({
     user_id:currentUser.id, date:ds(currentDate),
     title, body:'', done:false, deadline:'',
-    cat_id:activeCatFilter||'', sort_order:todos.length
+    cat_id:inlineSelectedCat.todo||'', sort_order:todos.length
   }).select().single();
   inp.disabled=false; inp.focus();
   if(error||!data){ sync('ok'); toast('❌ 저장 실패, 다시 시도해주세요'); return; }
@@ -1415,7 +1570,7 @@ function addCatRow() {
 }
 async function saveCats() {
   categories=editingCats.filter(c=>c.name.trim()!=='').map(c=>({...c,name:c.name.trim()}));
-  await saveCategoriesDb(); closeCatModal(); renderCatFilter(); renderTodos();
+  await saveCategoriesDb(); closeCatModal(); renderCatFilter(); renderTodos(); refreshInlineDropdownBtn('todo');
 }
 
 let cpMode = '';
@@ -1457,7 +1612,16 @@ function applyColor(c) {
 }
 function closeCp() { document.getElementById('cpicker').classList.remove('open'); cpTarget=null; cpMode=''; }
 function rgbHex(rgb) { const m=rgb.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/); if(!m) return rgb; return '#'+[m[1],m[2],m[3]].map(x=>parseInt(x).toString(16).padStart(2,'0')).join(''); }
-document.addEventListener('click',e=>{ if(!document.getElementById('cpicker').contains(e.target)&&!e.target.classList.contains('cat-dot')) closeCp(); });
+document.addEventListener('click',e=>{
+  if(!document.getElementById('cpicker').contains(e.target)&&!e.target.classList.contains('cat-dot')) closeCp();
+  // 카테고리 드롭다운 외부 클릭 시 닫기
+  const isInsideDropdown = e.target.closest('.cat-dropdown-wrap');
+  if(!isInsideDropdown) {
+    ['todo','income','expense','ev'].forEach(k => {
+      document.getElementById(`${k}-cat-dropdown-menu`)?.classList.remove('open');
+    });
+  }
+});
 
 // ── Mini Cal ──
 function renderMiniCal() {
@@ -2063,7 +2227,9 @@ function renderEvCatFilter() {
 
 function openAddEventModal() {
   const titleInput=document.getElementById('event-title-input');
-  editingEvId=null; selectedEvModalCat='';
+  editingEvId=null;
+  // 드롭다운에서 선택된 카테고리를 모달에 미리 반영
+  selectedEvModalCat=inlineSelectedCat.ev||'';
   document.getElementById('ev-modal-title-input').value=titleInput.value.trim();
   document.getElementById('ev-modal-start-input').value=ds(evViewDate);
   document.getElementById('ev-modal-end-input').value=ds(evViewDate);
@@ -2158,7 +2324,7 @@ async function saveEvCats() {
   evCats=editingEvCats.filter(c=>c.name.trim()!=='').map(c=>({...c,name:c.name.trim()}));
   await sb.from('event_categories').delete().eq('user_id',currentUser.id);
   if(evCats.length) await sb.from('event_categories').insert(evCats.map(c=>({id:c.id,user_id:currentUser.id,name:c.name,color:c.color})));
-  closeEvCatModal(); renderEvCatFilter(); renderEvView();
+  closeEvCatModal(); renderEvCatFilter(); renderEvView(); refreshInlineDropdownBtn('ev');
   toast('✅ 카테고리 저장됐어요');
 }
 
@@ -2293,13 +2459,14 @@ async function addTransaction(type) {
   const amount=parseInt(amtInput.value);
   if(!title){ toast('제목을 입력해주세요'); titleInput.focus(); return; }
   if(!amount||amount<=0){ toast('금액을 입력해주세요'); amtInput.focus(); return; }
-  const activeCat=activeTxCatFilter[type];
+  // 드롭다운 선택값 우선, 없으면 필터값 사용
+  const catId=inlineSelectedCat[type]||activeTxCatFilter[type]||'';
   sync('syncing');
   const {data,error}=await sb.from('transactions').insert({
     user_id:currentUser.id,
     date:ds(getTxDate(type)),
     type, amount, memo:'', title,
-    cat_id:activeCat||''
+    cat_id:catId
   }).select().single();
   sync('ok');
   if(error){ toast('❌ 저장 실패'); return; }
@@ -2394,6 +2561,7 @@ async function saveTxCats() {
   closeTxCatModal();
   renderTxCatFilter(type);
   renderTxList(type);
+  refreshInlineDropdownBtn(type);
   toast('✅ 카테고리 저장됐어요');
 }
 
