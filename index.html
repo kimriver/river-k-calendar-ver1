@@ -2302,7 +2302,13 @@ async function renderDash() {
   // ── 할 일 ──
   const {data:todayTodosData}=await sb.from('todos').select('*')
     .eq('user_id',currentUser.id).eq('date',targetStr).order('sort_order');
-  const todayTodos=todayTodosData||[];
+  // 시간 있는 항목 먼저, 시간순 정렬 (할 일 목록과 동일 방식)
+  const todayTodos=[...(todayTodosData||[])].sort((a,b)=>{
+    if(a.time&&!b.time) return -1;
+    if(!a.time&&b.time) return 1;
+    if(a.time&&b.time) return a.time.localeCompare(b.time);
+    return 0;
+  });
   const total=todayTodos.length, done=todayTodos.filter(t=>t.done).length;
   document.getElementById('dash-total').textContent=total;
   document.getElementById('dash-done').textContent=done;
