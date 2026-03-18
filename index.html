@@ -19,9 +19,55 @@
   --red:#f87171; --yellow:#fbbf24; --green:#4ade80;
   --radius:10px; --shadow:0 8px 32px rgba(0,0,0,0.5);
 }
+/* ── 라이트 테마 ── */
+body.theme-light {
+  --bg:#f0f2f8; --bg2:#ffffff; --bg3:#e8eaf2; --bg4:#dde0ee;
+  --border:#d0d4e8; --accent:#6c5ce7; --accent2:#5a4ad1;
+  --accent-dim:rgba(108,92,231,0.10);
+  --text:#1a1a2e; --text2:#555577; --text3:#9999bb;
+  --red:#e53935; --yellow:#f59f00; --green:#2e7d32;
+  --shadow:0 8px 32px rgba(0,0,0,0.12);
+}
 * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
 html,body { height:100%; overflow:hidden; }
-body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--text); display:flex; flex-direction:column; }
+body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--text); display:flex; flex-direction:column; transition:background 0.25s, color 0.25s; }
+
+/* ── 설정 탭 ── */
+.settings-tabs { display:flex; gap:0; margin-bottom:18px; background:var(--bg3); border-radius:8px; padding:3px; }
+.settings-tab-btn { flex:1; padding:8px; border:none; background:none; color:var(--text2); font-family:'Noto Sans KR',sans-serif; font-size:13px; cursor:pointer; border-radius:6px; transition:all 0.2s; }
+.settings-tab-btn.active { background:var(--accent); color:#fff; }
+.settings-tab-pane { display:none; }
+.settings-tab-pane.active { display:block; }
+
+/* ── 테마 선택 카드 ── */
+.theme-cards { display:flex; gap:12px; }
+.theme-card {
+  flex:1; border:2px solid var(--border); border-radius:12px;
+  padding:14px 10px 12px; cursor:pointer; transition:all 0.2s;
+  background:var(--bg3); text-align:center;
+}
+.theme-card:hover { border-color:var(--accent); }
+.theme-card.selected { border-color:var(--accent); background:var(--accent-dim); }
+.theme-card-preview {
+  width:100%; height:52px; border-radius:8px; margin-bottom:10px;
+  display:flex; gap:4px; padding:6px; overflow:hidden;
+}
+.theme-card-preview.dark { background:#12121a; border:1px solid #2a2a3a; }
+.theme-card-preview.light { background:#ffffff; border:1px solid #d0d4e8; }
+.tc-sidebar { width:28%; border-radius:4px; }
+.theme-card-preview.dark .tc-sidebar { background:#1a1a25; }
+.theme-card-preview.light .tc-sidebar { background:#e8eaf2; }
+.tc-main { flex:1; display:flex; flex-direction:column; gap:3px; }
+.tc-bar { height:6px; border-radius:3px; }
+.theme-card-preview.dark .tc-bar { background:#2a2a3a; }
+.theme-card-preview.light .tc-bar { background:#d0d4e8; }
+.tc-bar.accent { }
+.theme-card-preview.dark .tc-bar.accent { background:#7c6af7; }
+.theme-card-preview.light .tc-bar.accent { background:#6c5ce7; }
+.theme-card-label { font-size:13px; font-weight:600; color:var(--text); margin-bottom:2px; }
+.theme-card-sub { font-size:11px; color:var(--text3); }
+.theme-card .check { font-size:16px; margin-top:6px; opacity:0; transition:opacity 0.2s; }
+.theme-card.selected .check { opacity:1; }
 
 /* ── 로딩 화면 ── */
 #loading-screen {
@@ -857,9 +903,53 @@ body { font-family:'Noto Sans KR',sans-serif; background:var(--bg); color:var(--
       <button class="modal-x" onclick="closeSettings()">✕</button>
     </div>
     <div class="modal-bd">
-      <div class="modal-field">
-        <label>메뉴 순서 (드래그로 변경)</label>
-        <div id="settings-menu-list"></div>
+      <!-- 탭 버튼 -->
+      <div class="settings-tabs">
+        <button class="settings-tab-btn active" id="stab-menu" onclick="switchSettingsTab('menu')">📋 메뉴 순서</button>
+        <button class="settings-tab-btn" id="stab-display" onclick="switchSettingsTab('display')">🎨 화면 설정</button>
+      </div>
+      <!-- 메뉴 순서 탭 -->
+      <div class="settings-tab-pane active" id="spane-menu">
+        <div class="modal-field">
+          <label>메뉴 순서 (드래그로 변경)</label>
+          <div id="settings-menu-list"></div>
+        </div>
+      </div>
+      <!-- 화면 설정 탭 -->
+      <div class="settings-tab-pane" id="spane-display">
+        <div class="modal-field">
+          <label>테마</label>
+          <div class="theme-cards">
+            <div class="theme-card" id="theme-card-dark" onclick="selectTheme('dark')">
+              <div class="theme-card-preview dark">
+                <div class="tc-sidebar"></div>
+                <div class="tc-main">
+                  <div class="tc-bar accent"></div>
+                  <div class="tc-bar"></div>
+                  <div class="tc-bar"></div>
+                  <div class="tc-bar" style="width:60%"></div>
+                </div>
+              </div>
+              <div class="theme-card-label">다크 모드</div>
+              <div class="theme-card-sub">어두운 배경</div>
+              <div class="check">✅</div>
+            </div>
+            <div class="theme-card" id="theme-card-light" onclick="selectTheme('light')">
+              <div class="theme-card-preview light">
+                <div class="tc-sidebar"></div>
+                <div class="tc-main">
+                  <div class="tc-bar accent"></div>
+                  <div class="tc-bar"></div>
+                  <div class="tc-bar"></div>
+                  <div class="tc-bar" style="width:60%"></div>
+                </div>
+              </div>
+              <div class="theme-card-label">라이트 모드</div>
+              <div class="theme-card-sub">밝은 배경</div>
+              <div class="check">✅</div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
     <div class="modal-ft">
@@ -879,6 +969,12 @@ try {
   Object.keys(localStorage).forEach(key => {
     if(key.includes('lock')) localStorage.removeItem(key);
   });
+} catch(e) {}
+
+// ── 페이지 로드 즉시 테마 적용 (깜빡임 방지) ──
+try {
+  const savedTheme = localStorage.getItem('rkt-theme') || 'dark';
+  if(savedTheme === 'light') document.body.classList.add('theme-light');
 } catch(e) {}
 
 window.addEventListener('beforeunload', () => {
@@ -1640,6 +1736,45 @@ const DEFAULT_MENU_ORDER = [
 ];
 let menuOrder = [...DEFAULT_MENU_ORDER];
 let settingsDragSrc = null;
+let currentTheme = 'dark';      // 현재 선택 테마 (저장 전)
+let appliedTheme = 'dark';      // 실제 적용된 테마
+
+// ── 테마 적용 ──
+function applyTheme(theme) {
+  appliedTheme = theme;
+  if(theme === 'light') {
+    document.body.classList.add('theme-light');
+    document.querySelector('meta[name="theme-color"]').content = '#f0f2f8';
+  } else {
+    document.body.classList.remove('theme-light');
+    document.querySelector('meta[name="theme-color"]').content = '#0a0a0f';
+  }
+}
+
+function loadTheme() {
+  try {
+    const saved = localStorage.getItem('rkt-theme') || 'dark';
+    applyTheme(saved);
+    currentTheme = saved;
+  } catch(e) {}
+}
+
+// ── 설정 탭 전환 ──
+function switchSettingsTab(tab) {
+  document.querySelectorAll('.settings-tab-btn').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.settings-tab-pane').forEach(p=>p.classList.remove('active'));
+  document.getElementById(`stab-${tab}`).classList.add('active');
+  document.getElementById(`spane-${tab}`).classList.add('active');
+}
+
+// ── 테마 카드 선택 (저장 전 미리보기) ──
+function selectTheme(theme) {
+  currentTheme = theme;
+  document.getElementById('theme-card-dark').classList.toggle('selected', theme==='dark');
+  document.getElementById('theme-card-light').classList.toggle('selected', theme==='light');
+  // 미리보기로 바로 적용
+  applyTheme(theme);
+}
 
 function loadMenuOrder() {
   try {
@@ -1666,10 +1801,21 @@ function applyMenuOrder() {
 }
 
 function openSettings() {
+  // 현재 적용 테마로 카드 초기화
+  currentTheme = appliedTheme;
+  document.getElementById('theme-card-dark').classList.toggle('selected', appliedTheme==='dark');
+  document.getElementById('theme-card-light').classList.toggle('selected', appliedTheme==='light');
+  // 항상 메뉴 순서 탭부터 시작
+  switchSettingsTab('menu');
   renderSettingsMenuList();
   document.getElementById('settings-overlay').classList.add('open');
 }
-function closeSettings() { document.getElementById('settings-overlay').classList.remove('open'); }
+function closeSettings() {
+  // 저장 안 하고 닫으면 원래 테마로 복구
+  applyTheme(appliedTheme);
+  currentTheme = appliedTheme;
+  document.getElementById('settings-overlay').classList.remove('open');
+}
 
 function renderSettingsMenuList() {
   const wrap = document.getElementById('settings-menu-list');
@@ -1698,9 +1844,11 @@ function renderSettingsMenuList() {
 
 function saveSettings() {
   try { localStorage.setItem('rkt-menu-order', JSON.stringify(menuOrder.map(m=>m.id))); } catch(e) {}
+  try { localStorage.setItem('rkt-theme', currentTheme); } catch(e) {}
+  applyTheme(currentTheme);
   applyMenuOrder();
-  closeSettings();
-  toast('✅ 메뉴 순서가 저장됐어요!');
+  document.getElementById('settings-overlay').classList.remove('open');
+  toast('✅ 설정이 저장됐어요!');
 }
 
 async function renderDash() {
@@ -2272,6 +2420,7 @@ const loadingTimeout = setTimeout(() => {
       try { await loadTodos(); } catch(e) { console.warn('loadTodos error',e); }
       loadMenuOrder();
       applyMenuOrder();
+      loadTheme();
       renderCatFilter();
       renderMiniCal();
     } else {
@@ -2297,6 +2446,7 @@ sb.auth.onAuthStateChange(async(event,session)=>{
     await loadTodos();
     loadMenuOrder();
     applyMenuOrder();
+    loadTheme();
     renderCatFilter();
     renderMiniCal();
     document.getElementById('loading-screen').classList.add('hidden');
