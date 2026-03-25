@@ -2504,6 +2504,7 @@ function switchView(v) {
     document.getElementById('view-todo').classList.add('active');
     document.getElementById('hnav-todo').classList.add('active');
     document.getElementById('snav-todo').classList.add('active');
+    loadTodos();
   } else if(v==='cal'){
     document.getElementById('view-cal').classList.add('active');
     document.getElementById('hnav-cal').classList.add('active');
@@ -2513,17 +2514,17 @@ function switchView(v) {
     document.getElementById('view-event').classList.add('active');
     document.getElementById('hnav-event').classList.add('active');
     document.getElementById('snav-event').classList.add('active');
-    evViewDate=new Date(); renderEvView();
+    evViewDate=new Date(currentDate); renderEvView();
   } else if(v==='income'){
     document.getElementById('view-income').classList.add('active');
     document.getElementById('hnav-income').classList.add('active');
     document.getElementById('snav-income').classList.add('active');
-    renderTxView('income');
+    txIncomeDate=new Date(currentDate); renderTxView('income');
   } else if(v==='expense'){
     document.getElementById('view-expense').classList.add('active');
     document.getElementById('hnav-expense').classList.add('active');
     document.getElementById('snav-expense').classList.add('active');
-    renderTxView('expense');
+    txExpenseDate=new Date(currentDate); renderTxView('expense');
   }
 }
 
