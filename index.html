@@ -484,10 +484,20 @@ body { font-family:var(--font-main,'Noto Sans KR',sans-serif); background:var(--
 .cal-cell.holiday .cal-num { color:rgba(255,120,120,0.9); }
 .cal-holiday-label { font-size:8px; color:rgba(255,120,120,0.8); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-bottom:2px; font-weight:500; }
 .cal-todos { flex:1; overflow:hidden; display:flex; flex-direction:column; gap:2px; }
-.cal-chip { font-size:9px; padding:1px 5px; border-radius:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; background:var(--bg4); color:var(--text2); border-left:2px solid var(--accent); }
+.cal-chip { font-size:9px; padding:1px 4px 1px 3px; border-radius:3px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; background:var(--bg4); color:var(--text2); border-left:2px solid var(--accent); display:flex; align-items:center; gap:3px; cursor:default; }
 .cal-chip.done { opacity:0.4; text-decoration:line-through; }
 .cal-chip.income { border-left-color:#22c55e; color:#4ade80; }
 .cal-chip.expense { border-left-color:#ef4444; color:#f87171; }
+.cal-chip-text { overflow:hidden; text-overflow:ellipsis; white-space:nowrap; flex:1; min-width:0; }
+.cal-todo-check {
+  width:10px; height:10px; border:1.5px solid var(--text3);
+  border-radius:2px; flex-shrink:0; cursor:pointer;
+  display:flex; align-items:center; justify-content:center;
+  transition:all 0.15s;
+}
+.cal-todo-check:hover { border-color:var(--accent2); background:var(--accent-dim); }
+.cal-todo-check.checked { background:var(--accent); border-color:var(--accent); }
+.cal-todo-check.checked::after { content:'✓'; color:#fff; font-size:7px; font-weight:900; line-height:1; }
 .cal-more { font-size:9px; color:var(--text3); }
 
 /* Mobile sidebar */
@@ -1987,6 +1997,26 @@ function toggleCalLayer(type) {
   renderCalView();
 }
 
+async function toggleCalTodoDone(t, dstr, chkEl, chipEl) {
+  t.done = !t.done;
+  // UI 즉시 반영
+  chkEl.classList.toggle('checked', t.done);
+  chkEl.title = t.done ? '완료 취소' : '완료 처리';
+  chipEl.classList.toggle('done', t.done);
+  // monthData도 업데이트
+  if(monthData[dstr]) {
+    const found = monthData[dstr].find(x=>x.id===t.id);
+    if(found) found.done = t.done;
+  }
+  // todos 배열도 업데이트 (같은 날짜면)
+  const local = todos.find(x=>x.id===t.id);
+  if(local) local.done = t.done;
+  sync('syncing');
+  await sb.from('todos').update({done:t.done}).eq('id',t.id);
+  sync('ok');
+  toast(t.done ? '✅ 완료!' : '↩️ 완료 취소');
+}
+
 async function renderCalView() {
   const y=calViewDate.getFullYear(),m=calViewDate.getMonth();
   document.getElementById('cal-month-label').textContent=`${y}년 ${m+1}월`;
@@ -2053,7 +2083,19 @@ async function renderCalView() {
         const cat=gc(t.cat_id);
         const chip=document.createElement('div'); chip.className='cal-chip'+(t.done?' done':'');
         chip.style.borderLeftColor=cat?cat.color:'var(--accent)';
-        chip.textContent=t.time?`${t.time.slice(0,5)} ${t.title}`:t.title;
+        // 체크박스
+        const chk=document.createElement('div');
+        chk.className='cal-todo-check'+(t.done?' checked':'');
+        chk.title=t.done?'완료 취소':'완료 처리';
+        chk.addEventListener('click',async(e)=>{
+          e.stopPropagation();
+          await toggleCalTodoDone(t, dstr, chk, chip);
+        });
+        chip.appendChild(chk);
+        // 텍스트
+        const txt=document.createElement('span'); txt.className='cal-chip-text';
+        txt.textContent=t.time?`${t.time.slice(0,5)} ${t.title}`:t.title;
+        chip.appendChild(txt);
         wrap.appendChild(chip); itemCount++;
       });
     }
