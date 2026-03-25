@@ -500,6 +500,15 @@ body { font-family:var(--font-main,'Noto Sans KR',sans-serif); background:var(--
 .cal-todo-check.checked::after { content:'✓'; color:#fff; font-size:7px; font-weight:900; line-height:1; }
 .cal-more { font-size:9px; color:var(--text3); }
 
+/* ── 달력 드래그 앤 드롭 ── */
+.cal-chip[draggable="true"] { cursor:grab; transition:opacity 0.15s; }
+.cal-chip[draggable="true"]:hover { opacity:0.8; }
+.cal-chip-event[draggable="true"] { cursor:grab; transition:opacity 0.15s; }
+.cal-chip-event[draggable="true"]:hover { opacity:0.8; }
+.cal-chip.cal-dragging { opacity:0.3; cursor:grabbing; }
+.cal-chip-event.cal-dragging { opacity:0.3; cursor:grabbing; }
+.cal-cell.cal-drop-over { background:var(--accent-dim) !important; outline:2px dashed var(--accent); outline-offset:-3px; border-radius:4px; }
+
 /* ── 달력 호버 팝업 ── */
 #cal-hover-popup {
   position:fixed; z-index:500;
@@ -2105,6 +2114,7 @@ function getFallbackHolidays(y, m) {
 }
 
 const calLayers = { todo: true, event: true, income: true, expense: true };
+let calDragItem = null; // 드래그 중인 달력 항목
 
 function toggleCalLayer(type) {
   calLayers[type] = !calLayers[type];
@@ -2288,6 +2298,18 @@ async function renderCalView() {
         chip.textContent=isStart||isSingle?ev.title:'　';
         chip.addEventListener('mouseenter', e => calPopupEvent(e, ev));
         chip.addEventListener('mouseleave', cancelCalPopup);
+        // 드래그 앤 드롭 - 일정 (시작일/단일일만 드래그 가능)
+        if(isStart || isSingle) {
+          chip.setAttribute('draggable','true');
+          chip.addEventListener('dragstart', e => {
+            cancelCalPopup();
+            calDragItem = { type:'event', id:ev.id, fromDate:dstr, ev };
+            chip.classList.add('cal-dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/plain', ev.id);
+          });
+          chip.addEventListener('dragend', () => chip.classList.remove('cal-dragging'));
+        }
         wrap.appendChild(chip); itemCount++;
       });
     }
@@ -2320,6 +2342,16 @@ async function renderCalView() {
         chip.appendChild(txt);
         chip.addEventListener('mouseenter', e => calPopupTodo(e, t));
         chip.addEventListener('mouseleave', cancelCalPopup);
+        // 드래그 앤 드롭 - 할 일
+        chip.setAttribute('draggable','true');
+        chip.addEventListener('dragstart', e => {
+          cancelCalPopup();
+          calDragItem = { type:'todo', id:t.id, fromDate:dstr };
+          chip.classList.add('cal-dragging');
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', t.id);
+        });
+        chip.addEventListener('dragend', () => chip.classList.remove('cal-dragging'));
         wrap.appendChild(chip); itemCount++;
       });
     }
@@ -2332,6 +2364,16 @@ async function renderCalView() {
         chip.textContent=`💰 ${fmtAmt(t.amount)}`;
         chip.addEventListener('mouseenter', e => calPopupTx(e, t));
         chip.addEventListener('mouseleave', cancelCalPopup);
+        // 드래그 앤 드롭 - 수입
+        chip.setAttribute('draggable','true');
+        chip.addEventListener('dragstart', e => {
+          cancelCalPopup();
+          calDragItem = { type:'income', id:t.id, fromDate:dstr };
+          chip.classList.add('cal-dragging');
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', t.id);
+        });
+        chip.addEventListener('dragend', () => chip.classList.remove('cal-dragging'));
         wrap.appendChild(chip); itemCount++;
       });
     }
@@ -2344,6 +2386,16 @@ async function renderCalView() {
         chip.textContent=`💸 ${fmtAmt(t.amount)}`;
         chip.addEventListener('mouseenter', e => calPopupTx(e, t));
         chip.addEventListener('mouseleave', cancelCalPopup);
+        // 드래그 앤 드롭 - 지출
+        chip.setAttribute('draggable','true');
+        chip.addEventListener('dragstart', e => {
+          cancelCalPopup();
+          calDragItem = { type:'expense', id:t.id, fromDate:dstr };
+          chip.classList.add('cal-dragging');
+          e.dataTransfer.effectAllowed = 'move';
+          e.dataTransfer.setData('text/plain', t.id);
+        });
+        chip.addEventListener('dragend', () => chip.classList.remove('cal-dragging'));
         wrap.appendChild(chip); itemCount++;
       });
     }
@@ -2368,6 +2420,43 @@ async function renderCalView() {
     }
 
     cell.appendChild(wrap);
+    // ── 셀 드롭 이벤트 ──
+    cell.addEventListener('dragover', e => {
+      if(!calDragItem) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      cell.classList.add('cal-drop-over');
+    });
+    cell.addEventListener('dragleave', e => {
+      if(!e.relatedTarget || !cell.contains(e.relatedTarget))
+        cell.classList.remove('cal-drop-over');
+    });
+    cell.addEventListener('drop', async e => {
+      e.preventDefault(); e.stopPropagation();
+      cell.classList.remove('cal-drop-over');
+      if(!calDragItem || calDragItem.fromDate === dstr) { calDragItem=null; return; }
+      const { type, id, fromDate, ev } = calDragItem;
+      calDragItem = null;
+      sync('syncing');
+      if(type === 'todo') {
+        await sb.from('todos').update({ date: dstr }).eq('id', id);
+        if(monthData[fromDate]) monthData[fromDate] = monthData[fromDate].filter(x=>x.id!==id);
+        toast(`📅 할 일을 ${dstr}로 이동했어요`);
+      } else if(type === 'event') {
+        const duration = ev && ev.start_date && ev.end_date
+          ? (new Date(ev.end_date) - new Date(ev.start_date)) / 86400000 : 0;
+        const newEnd = new Date(dstr);
+        newEnd.setDate(newEnd.getDate() + duration);
+        const newEndStr = newEnd.toISOString().slice(0,10);
+        await sb.from('events').update({ start_date: dstr, end_date: newEndStr }).eq('id', id);
+        toast(`📅 일정을 ${dstr}로 이동했어요`);
+      } else {
+        await sb.from('transactions').update({ date: dstr }).eq('id', id);
+        toast(`📅 ${type==='income'?'수입':'지출'}을 ${dstr}로 이동했어요`);
+      }
+      sync('ok');
+      renderCalView();
+    });
     cell.onclick=()=>{
       currentDate=new Date(y,m,d);miniCalDate=new Date(currentDate);
       const active=Object.keys(calLayers).filter(k=>calLayers[k]);
