@@ -274,8 +274,15 @@ body { font-family:var(--font-main,'Noto Sans KR',sans-serif); background:var(--
 .action-btn.del:hover { color:var(--red); }
 
 /* Add bar */
-#add-todo-bar { padding:10px 22px; border-top:1px solid var(--border); display:flex; gap:8px; flex-shrink:0; }
-#new-todo-input { flex:1; background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); padding:10px 14px; color:var(--text); font-family:'Noto Sans KR',sans-serif; font-size:14px; outline:none; transition:border-color 0.2s; min-width:0; }
+#add-todo-bar { padding:10px 16px 10px; border-top:1px solid var(--border); display:flex; flex-direction:column; gap:8px; flex-shrink:0; }
+#add-todo-bar-row1 { display:flex; gap:8px; }
+#add-todo-bar-row2 { display:flex; gap:8px; }
+#add-todo-bar-row2 .time-dropdown-wrap { flex:1; }
+#add-todo-bar-row2 .time-dropdown-wrap .time-dropdown-btn { width:100%; min-width:0; justify-content:center; }
+#add-todo-bar-row2 .cat-dropdown-wrap { flex:1; }
+#add-todo-bar-row2 .cat-dropdown-wrap .cat-dropdown-btn { width:100%; min-width:0; max-width:none; justify-content:center; }
+#add-todo-bar-row2 #add-btn { flex-shrink:0; }
+#new-todo-input { flex:1; background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); padding:10px 14px; color:var(--text); font-family:'Noto Sans KR',sans-serif; font-size:14px; outline:none; transition:border-color 0.2s; min-width:0; width:100%; }
 #new-todo-input:focus { border-color:var(--accent); }
 #new-todo-input::placeholder { color:var(--text3); }
 #add-btn { background:var(--accent); border:none; border-radius:var(--radius); color:white; padding:10px 16px; cursor:pointer; font-family:'Noto Sans KR',sans-serif; font-size:14px; font-weight:500; transition:all 0.2s; white-space:nowrap; flex-shrink:0; }
@@ -827,23 +834,27 @@ body { font-family:var(--font-main,'Noto Sans KR',sans-serif); background:var(--
         </div>
         <div id="todo-list-wrap"><div id="todo-list"></div></div>
         <div id="add-todo-bar">
-          <input type="text" id="new-todo-input" placeholder="새 할 일 입력... (Enter)" maxlength="100">
-          <div class="time-dropdown-wrap" id="todo-time-dropdown-wrap">
-            <button class="time-dropdown-btn" id="todo-time-dropdown-btn" onclick="toggleTimeDropdown()">
-              <span id="todo-time-label">⏰ 시간</span>
-              <span style="font-size:9px;opacity:0.6">▲</span>
-            </button>
-            <div class="time-dropdown-menu" id="todo-time-dropdown-menu"></div>
+          <div id="add-todo-bar-row1">
+            <input type="text" id="new-todo-input" placeholder="새 할 일 제목 입력..." maxlength="100">
           </div>
-          <div class="cat-dropdown-wrap" id="todo-cat-dropdown-wrap">
-            <button class="cat-dropdown-btn" id="todo-cat-dropdown-btn" onclick="toggleCatDropdown('todo')">
-              <span class="cdb-dot" id="todo-cdb-dot"></span>
-              <span class="cdb-label" id="todo-cdb-label">카테고리</span>
-              <span class="cdb-arrow">▲</span>
-            </button>
-            <div class="cat-dropdown-menu" id="todo-cat-dropdown-menu"></div>
+          <div id="add-todo-bar-row2">
+            <div class="time-dropdown-wrap" id="todo-time-dropdown-wrap">
+              <button class="time-dropdown-btn" id="todo-time-dropdown-btn" onclick="toggleTimeDropdown()">
+                <span id="todo-time-label">⏰ 시간</span>
+                <span style="font-size:9px;opacity:0.6">▲</span>
+              </button>
+              <div class="time-dropdown-menu" id="todo-time-dropdown-menu"></div>
+            </div>
+            <div class="cat-dropdown-wrap" id="todo-cat-dropdown-wrap">
+              <button class="cat-dropdown-btn" id="todo-cat-dropdown-btn" onclick="toggleCatDropdown('todo')">
+                <span class="cdb-dot" id="todo-cdb-dot"></span>
+                <span class="cdb-label" id="todo-cdb-label">카테고리</span>
+                <span class="cdb-arrow">▲</span>
+              </button>
+              <div class="cat-dropdown-menu" id="todo-cat-dropdown-menu"></div>
+            </div>
+            <button id="add-btn" onclick="addTodo()">추가</button>
           </div>
-          <button id="add-btn" onclick="addTodo()">추가</button>
         </div>
       </div>
 
