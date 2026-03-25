@@ -317,10 +317,15 @@ body { font-family:var(--font-main,'Noto Sans KR',sans-serif); background:var(--
 .tx-item-title { font-size:14px; font-weight:500; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; transition:color 0.2s; }
 .tx-item-title:hover { color:var(--accent2); }
 .tx-item-memo-preview { font-size:11px; color:var(--text3); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px; }
-.tx-add-bar { padding:10px 22px; border-top:1px solid var(--border); display:flex; gap:8px; flex-shrink:0; }
+.tx-add-bar { padding:10px 16px; border-top:1px solid var(--border); display:flex; flex-direction:column; gap:8px; flex-shrink:0; }
+.tx-add-bar-row1 { display:flex; gap:8px; }
+.tx-add-bar-row2 { display:flex; gap:8px; }
+.tx-add-bar-row2 .cat-dropdown-wrap { flex:1; }
+.tx-add-bar-row2 .cat-dropdown-wrap .cat-dropdown-btn { width:100%; min-width:0; max-width:none; justify-content:center; }
+.tx-add-bar-row2 .tx-amount-input { flex:1; width:auto; min-width:0; }
 .tx-amount-input { width:110px; background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); padding:10px 14px; color:var(--text); font-family:'Space Mono',monospace; font-size:14px; outline:none; transition:border-color 0.2s; flex-shrink:0; }
 .tx-amount-input:focus { border-color:var(--accent); }
-.tx-memo-input { flex:1; background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); padding:10px 14px; color:var(--text); font-family:'Noto Sans KR',sans-serif; font-size:14px; outline:none; transition:border-color 0.2s; min-width:0; }
+.tx-memo-input { flex:1; background:var(--bg3); border:1px solid var(--border); border-radius:var(--radius); padding:10px 14px; color:var(--text); font-family:'Noto Sans KR',sans-serif; font-size:14px; outline:none; transition:border-color 0.2s; min-width:0; width:100%; }
 .tx-memo-input:focus { border-color:var(--accent); }
 .tx-memo-input::placeholder, .tx-amount-input::placeholder { color:var(--text3); }
 .tx-add-btn { border:none; border-radius:var(--radius); color:white; padding:10px 16px; cursor:pointer; font-family:'Noto Sans KR',sans-serif; font-size:14px; font-weight:500; transition:all 0.2s; white-space:nowrap; flex-shrink:0; }
@@ -897,16 +902,20 @@ body { font-family:var(--font-main,'Noto Sans KR',sans-serif); background:var(--
         </div>
         <div class="tx-list-wrap" id="event-list"></div>
         <div class="tx-add-bar">
-          <input type="text" class="tx-memo-input" id="event-title-input" placeholder="일정 제목 입력... (Enter)" maxlength="50">
-          <div class="cat-dropdown-wrap" id="ev-cat-dropdown-wrap">
-            <button class="cat-dropdown-btn" id="ev-cat-dropdown-btn" onclick="toggleCatDropdown('ev')">
-              <span class="cdb-dot" id="ev-cdb-dot"></span>
-              <span class="cdb-label" id="ev-cdb-label">카테고리</span>
-              <span class="cdb-arrow">▲</span>
-            </button>
-            <div class="cat-dropdown-menu" id="ev-cat-dropdown-menu"></div>
+          <div class="tx-add-bar-row1">
+            <input type="text" class="tx-memo-input" id="event-title-input" placeholder="일정 제목 입력..." maxlength="50">
           </div>
-          <button class="tx-add-btn" style="background:var(--accent)" onclick="openAddEventModal()">+ 추가</button>
+          <div class="tx-add-bar-row2">
+            <div class="cat-dropdown-wrap" id="ev-cat-dropdown-wrap">
+              <button class="cat-dropdown-btn" id="ev-cat-dropdown-btn" onclick="toggleCatDropdown('ev')">
+                <span class="cdb-dot" id="ev-cdb-dot"></span>
+                <span class="cdb-label" id="ev-cdb-label">카테고리</span>
+                <span class="cdb-arrow">▲</span>
+              </button>
+              <div class="cat-dropdown-menu" id="ev-cat-dropdown-menu"></div>
+            </div>
+            <button class="tx-add-btn" style="background:var(--accent)" onclick="openAddEventModal()">+ 추가</button>
+          </div>
         </div>
       </div>
 
@@ -929,17 +938,21 @@ body { font-family:var(--font-main,'Noto Sans KR',sans-serif); background:var(--
         </div>
         <div class="tx-list-wrap" id="income-list"></div>
         <div class="tx-add-bar">
-          <input type="text" class="tx-memo-input" id="income-title-input" placeholder="제목 입력... (Enter)" maxlength="50">
-          <div class="cat-dropdown-wrap" id="income-cat-dropdown-wrap">
-            <button class="cat-dropdown-btn" id="income-cat-dropdown-btn" onclick="toggleCatDropdown('income')">
-              <span class="cdb-dot" id="income-cdb-dot"></span>
-              <span class="cdb-label" id="income-cdb-label">카테고리</span>
-              <span class="cdb-arrow">▲</span>
-            </button>
-            <div class="cat-dropdown-menu" id="income-cat-dropdown-menu"></div>
+          <div class="tx-add-bar-row1">
+            <input type="text" class="tx-memo-input" id="income-title-input" placeholder="수입 제목 입력..." maxlength="50">
           </div>
-          <input type="number" class="tx-amount-input" id="income-amount-input" placeholder="금액" min="0">
-          <button class="tx-add-btn income-btn" onclick="addTransaction('income')">추가</button>
+          <div class="tx-add-bar-row2">
+            <div class="cat-dropdown-wrap" id="income-cat-dropdown-wrap">
+              <button class="cat-dropdown-btn" id="income-cat-dropdown-btn" onclick="toggleCatDropdown('income')">
+                <span class="cdb-dot" id="income-cdb-dot"></span>
+                <span class="cdb-label" id="income-cdb-label">카테고리</span>
+                <span class="cdb-arrow">▲</span>
+              </button>
+              <div class="cat-dropdown-menu" id="income-cat-dropdown-menu"></div>
+            </div>
+            <input type="number" class="tx-amount-input" id="income-amount-input" placeholder="금액" min="0">
+            <button class="tx-add-btn income-btn" onclick="addTransaction('income')">추가</button>
+          </div>
         </div>
       </div>
 
@@ -962,17 +975,21 @@ body { font-family:var(--font-main,'Noto Sans KR',sans-serif); background:var(--
         </div>
         <div class="tx-list-wrap" id="expense-list"></div>
         <div class="tx-add-bar">
-          <input type="text" class="tx-memo-input" id="expense-title-input" placeholder="제목 입력... (Enter)" maxlength="50">
-          <div class="cat-dropdown-wrap" id="expense-cat-dropdown-wrap">
-            <button class="cat-dropdown-btn" id="expense-cat-dropdown-btn" onclick="toggleCatDropdown('expense')">
-              <span class="cdb-dot" id="expense-cdb-dot"></span>
-              <span class="cdb-label" id="expense-cdb-label">카테고리</span>
-              <span class="cdb-arrow">▲</span>
-            </button>
-            <div class="cat-dropdown-menu" id="expense-cat-dropdown-menu"></div>
+          <div class="tx-add-bar-row1">
+            <input type="text" class="tx-memo-input" id="expense-title-input" placeholder="지출 제목 입력..." maxlength="50">
           </div>
-          <input type="number" class="tx-amount-input" id="expense-amount-input" placeholder="금액" min="0">
-          <button class="tx-add-btn expense-btn" onclick="addTransaction('expense')">추가</button>
+          <div class="tx-add-bar-row2">
+            <div class="cat-dropdown-wrap" id="expense-cat-dropdown-wrap">
+              <button class="cat-dropdown-btn" id="expense-cat-dropdown-btn" onclick="toggleCatDropdown('expense')">
+                <span class="cdb-dot" id="expense-cdb-dot"></span>
+                <span class="cdb-label" id="expense-cdb-label">카테고리</span>
+                <span class="cdb-arrow">▲</span>
+              </button>
+              <div class="cat-dropdown-menu" id="expense-cat-dropdown-menu"></div>
+            </div>
+            <input type="number" class="tx-amount-input" id="expense-amount-input" placeholder="금액" min="0">
+            <button class="tx-add-btn expense-btn" onclick="addTransaction('expense')">추가</button>
+          </div>
         </div>
       </div>
     </div>
