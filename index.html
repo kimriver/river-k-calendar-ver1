@@ -700,7 +700,7 @@ body { font-family:var(--font-main,'Noto Sans KR',sans-serif); background:var(--
     <div id="header-left">
       <button id="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
       <div id="header-title">RIVER'K TODAY <span id="app-version" style="font-size:9px;color:var(--text3);letter-spacing:1px;"></span></div>
-      <div id="header-version"></div>
+
       <div id="sync-dot"></div>
     </div>
     <div id="header-right">
@@ -1246,7 +1246,67 @@ const SUPABASE_URL = 'https://koabxnqimggnofzfatsc.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtvYWJ4bnFpbWdnbm9memZhdHNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3MDU3OTcsImV4cCI6MjA4OTI4MTc5N30.KT2CarRDIEHbxFZgej1TAF_eVWMWGu-T-mhZVnyKcZk';
 
 // ── 버전 (이 값 하나만 수정하면 전체 반영됨) ──
-const APP_VERSION = 'v2026.03.25';
+// ── 버전: 자동으로 GitHub 마지막 커밋 시간을 가져옴 ──
+const APP_VERSION_BASE = 'v.';  // 접두사
+async function fetchAndApplyVersion() {
+  try {
+    // GitHub Pages URL에서 username/repo 자동 감지
+    // 예: https://username.github.io/repo-name/
+    const { hostname, pathname } = window.location;
+    const isGHPages = hostname.endsWith('.github.io');
+
+    if (isGHPages) {
+      const parts = hostname.split('.');
+      const username = parts[0];
+      const repo = pathname.split('/').filter(Boolean)[0] || '';
+      const apiUrl = `https://api.github.com/repos/${username}/${repo}/commits?path=index.html&per_page=1`;
+      const res = await fetch(apiUrl);
+      if (res.ok) {
+        const data = await res.json();
+        const commitDate = data?.[0]?.commit?.committer?.date;
+        if (commitDate) {
+          // "2026-03-25T14:30:00Z" → "v.2026.03.25_14:30"
+          const d = new Date(commitDate);
+          const yyyy = d.getFullYear();
+          const mm   = String(d.getMonth()+1).padStart(2,'0');
+          const dd   = String(d.getDate()).padStart(2,'0');
+          const hh   = String(d.getHours()).padStart(2,'0');
+          const min  = String(d.getMinutes()).padStart(2,'0');
+          const ver  = `v.${yyyy}.${mm}.${dd}_${hh}:${min}`;
+          ['login-logo-version','app-version','login-version'].forEach(id => {
+            const el = document.getElementById(id);
+            if(el) el.textContent = ver;
+          });
+          return;
+        }
+      }
+    }
+    // GitHub Pages가 아니거나 API 실패 시: 파일 마지막 수정 시간 사용
+    const r2 = await fetch(window.location.href, {method:'HEAD'});
+    const lm = r2.headers.get('last-modified');
+    if(lm) {
+      const d = new Date(lm);
+      const yyyy = d.getFullYear();
+      const mm   = String(d.getMonth()+1).padStart(2,'0');
+      const dd   = String(d.getDate()).padStart(2,'0');
+      const hh   = String(d.getHours()).padStart(2,'0');
+      const min  = String(d.getMinutes()).padStart(2,'0');
+      const ver  = `v.${yyyy}.${mm}.${dd}_${hh}:${min}`;
+      ['login-logo-version','app-version','login-version'].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.textContent = ver;
+      });
+      return;
+    }
+  } catch(e) {}
+  // 최후 fallback: 오늘 날짜
+  const d = new Date();
+  const ver = `v.${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+  ['login-logo-version','app-version','login-version'].forEach(id => {
+    const el = document.getElementById(id);
+    if(el) el.textContent = ver;
+  });
+}
 
 // localStorage lock 키 삭제 제거됨 (Supabase 내부 mutex 보호)
 
@@ -3204,25 +3264,14 @@ document.addEventListener('keydown',e=>{
 });
 
 // ── 버전 표시 일괄 반영 ──
-function applyVersion() {
-  const els = {
-    'login-logo-version': APP_VERSION,
-    'app-version'       : APP_VERSION,
-    'header-version'    : APP_VERSION,
-    'login-version'     : APP_VERSION,
-  };
-  Object.entries(els).forEach(([id, val]) => {
-    const el = document.getElementById(id);
-    if(el) el.textContent = val;
-  });
-}
+
 
 // ── 앱 초기화 ──
 function hideLoading() {
   document.getElementById('loading-screen').classList.add('hidden');
 }
 function showLogin() {
-  applyVersion();
+  fetchAndApplyVersion();
   document.getElementById('loading-screen').classList.add('hidden');
   document.getElementById('login-screen').classList.remove('hidden');
   document.getElementById('app-screen').classList.add('hidden');
@@ -3231,7 +3280,7 @@ async function showApp(user) {
   try {
     console.log('[1] showApp 시작');
     currentUser = user;
-    applyVersion();
+    fetchAndApplyVersion();
     document.getElementById('loading-screen').classList.add('hidden');
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('app-screen').classList.remove('hidden');
