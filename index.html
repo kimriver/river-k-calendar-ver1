@@ -558,6 +558,7 @@ body { font-family:var(--font-main,'Noto Sans KR',sans-serif); background:var(--
 }
 .chp-row-icon { flex-shrink:0; font-size:11px; margin-top:1px; }
 .chp-row-val  { flex:1; word-break:break-all; }
+.chp-nl { word-break:break-word; line-height:1.6; }
 .chp-row-val.done { text-decoration:line-through; color:var(--text3); }
 .chp-row-val.urgent { color:var(--red); font-weight:600; }
 .chp-row-val.soon   { color:var(--yellow); font-weight:600; }
@@ -1529,6 +1530,7 @@ function ds(d) { return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,
 function fmtDate(d) { const days=['일','월','화','수','목','금','토']; return `${d.getFullYear()}년 ${d.getMonth()+1}월 ${d.getDate()}일 (${days[d.getDay()]})`; }
 function uid() { return Date.now().toString(36)+Math.random().toString(36).slice(2); }
 function esc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+function escNl(s) { return esc(s).replace(/\n/g,'<br>'); }
 function gc(id) { return categories.find(c=>c.id===id)||null; }
 function dc(v) { return JSON.parse(JSON.stringify(v)); }
 function isMob() { return window.innerWidth<=680; }
@@ -2195,7 +2197,7 @@ function calPopupTodo(e, t) {
     if(cat) rows += `<div class="chp-row"><span class="chp-row-icon">🏷</span><span class="chp-row-val"><span class="chp-cat-dot" style="background:${cat.color}"></span>${esc(cat.name)}</span></div>`;
     if(t.time) rows += `<div class="chp-row"><span class="chp-row-icon">⏰</span><span class="chp-row-val">${timeFmt(t.time)}</span></div>`;
     if(dl) rows += `<div class="chp-row"><span class="chp-row-icon">📅</span><span class="chp-row-val ${dl.cls}">${dl.label}</span></div>`;
-    if(t.body) rows += `<div class="chp-row"><span class="chp-row-icon">📝</span><span class="chp-row-val">${esc(t.body)}</span></div>`;
+    if(t.body) rows += `<div class="chp-row"><span class="chp-row-icon">📝</span><span class="chp-row-val chp-nl">${escNl(t.body)}</span></div>`;
     if(t.done) rows += `<div class="chp-row"><span class="chp-row-icon">✅</span><span class="chp-row-val" style="color:var(--green)">완료됨</span></div>`;
     if(!rows) rows = `<div class="chp-row"><span class="chp-row-val" style="color:var(--text3)">추가 정보 없음</span></div>`;
     showCalPopup(e, `
@@ -2216,7 +2218,7 @@ function calPopupEvent(e, ev) {
     let rows = '';
     if(cat) rows += `<div class="chp-row"><span class="chp-row-icon">🏷</span><span class="chp-row-val"><span class="chp-cat-dot" style="background:${cat.color}"></span>${esc(cat.name)}</span></div>`;
     rows += `<div class="chp-row"><span class="chp-row-icon">📅</span><span class="chp-row-val">${dateStr}</span></div>`;
-    if(ev.memo) rows += `<div class="chp-row"><span class="chp-row-icon">📝</span><span class="chp-row-val">${esc(ev.memo)}</span></div>`;
+    if(ev.memo) rows += `<div class="chp-row"><span class="chp-row-icon">📝</span><span class="chp-row-val chp-nl">${escNl(ev.memo)}</span></div>`;
     showCalPopup(e, `
       <div class="chp-header">
         <span class="chp-type-badge chp-type-event">일정</span>
@@ -2235,7 +2237,7 @@ function calPopupTx(e, t) {
     let rows = '';
     rows += `<div class="chp-row"><span class="chp-row-icon">${isInc?'💰':'💸'}</span><span class="chp-amount ${t.type}">${fmtAmt(t.amount)}</span></div>`;
     if(cat) rows += `<div class="chp-row"><span class="chp-row-icon">🏷</span><span class="chp-row-val"><span class="chp-cat-dot" style="background:${cat.color}"></span>${esc(cat.name)}</span></div>`;
-    if(t.memo) rows += `<div class="chp-row"><span class="chp-row-icon">📝</span><span class="chp-row-val chp-memo">${esc(t.memo)}</span></div>`;
+    if(t.memo) rows += `<div class="chp-row"><span class="chp-row-icon">📝</span><span class="chp-row-val chp-memo chp-nl">${escNl(t.memo)}</span></div>`;
     showCalPopup(e, `
       <div class="chp-header">
         <span class="chp-type-badge chp-type-${t.type}">${isInc?'수입':'지출'}</span>
