@@ -673,7 +673,7 @@ body { font-family:var(--font-main,'Noto Sans KR',sans-serif); background:var(--
 <!-- 로그인 화면 -->
 <div id="login-screen" class="hidden">
   <div class="login-box">
-    <div class="login-logo">✦ River'K Today <span style="font-size:9px;color:var(--text3);letter-spacing:1px;">v2026.03.18.05.02</span></div>
+    <div class="login-logo">✦ River'K Today <span id="login-logo-version" style="font-size:9px;color:var(--text3);letter-spacing:1px;"></span></div>
     <div class="login-title">안녕하세요 👋</div>
     <div class="login-sub">로그인하고 어디서든 일정을 관리하세요</div>
     <div class="login-tabs">
@@ -699,8 +699,8 @@ body { font-family:var(--font-main,'Noto Sans KR',sans-serif); background:var(--
   <div id="header">
     <div id="header-left">
       <button id="mobile-menu-btn" onclick="toggleSidebar()">☰</button>
-      <div id="header-title">RIVER'K TODAY <span id="app-version" style="font-size:9px;color:var(--text3);letter-spacing:1px;">v2026.03.18.05.02</span></div>
-      <div id="header-version">-</div>
+      <div id="header-title">RIVER'K TODAY <span id="app-version" style="font-size:9px;color:var(--text3);letter-spacing:1px;"></span></div>
+      <div id="header-version"></div>
       <div id="sync-dot"></div>
     </div>
     <div id="header-right">
@@ -1244,6 +1244,9 @@ body { font-family:var(--font-main,'Noto Sans KR',sans-serif); background:var(--
 <script>
 const SUPABASE_URL = 'https://koabxnqimggnofzfatsc.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtvYWJ4bnFpbWdnbm9memZhdHNjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM3MDU3OTcsImV4cCI6MjA4OTI4MTc5N30.KT2CarRDIEHbxFZgej1TAF_eVWMWGu-T-mhZVnyKcZk';
+
+// ── 버전 (이 값 하나만 수정하면 전체 반영됨) ──
+const APP_VERSION = 'v2026.03.25';
 
 // localStorage lock 키 삭제 제거됨 (Supabase 내부 mutex 보호)
 
@@ -3200,11 +3203,26 @@ document.addEventListener('keydown',e=>{
   if(e.key==='z'&&(e.ctrlKey||e.metaKey)){e.preventDefault();undo();}
 });
 
+// ── 버전 표시 일괄 반영 ──
+function applyVersion() {
+  const els = {
+    'login-logo-version': APP_VERSION,
+    'app-version'       : APP_VERSION,
+    'header-version'    : APP_VERSION,
+    'login-version'     : APP_VERSION,
+  };
+  Object.entries(els).forEach(([id, val]) => {
+    const el = document.getElementById(id);
+    if(el) el.textContent = val;
+  });
+}
+
 // ── 앱 초기화 ──
 function hideLoading() {
   document.getElementById('loading-screen').classList.add('hidden');
 }
 function showLogin() {
+  applyVersion();
   document.getElementById('loading-screen').classList.add('hidden');
   document.getElementById('login-screen').classList.remove('hidden');
   document.getElementById('app-screen').classList.add('hidden');
@@ -3213,6 +3231,7 @@ async function showApp(user) {
   try {
     console.log('[1] showApp 시작');
     currentUser = user;
+    applyVersion();
     document.getElementById('loading-screen').classList.add('hidden');
     document.getElementById('login-screen').classList.add('hidden');
     document.getElementById('app-screen').classList.remove('hidden');
