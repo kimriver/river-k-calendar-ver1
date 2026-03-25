@@ -500,6 +500,58 @@ body { font-family:var(--font-main,'Noto Sans KR',sans-serif); background:var(--
 .cal-todo-check.checked::after { content:'✓'; color:#fff; font-size:7px; font-weight:900; line-height:1; }
 .cal-more { font-size:9px; color:var(--text3); }
 
+/* ── 달력 호버 팝업 ── */
+#cal-hover-popup {
+  position:fixed; z-index:500;
+  background:var(--bg2); border:1px solid var(--border);
+  border-radius:12px; box-shadow:0 12px 40px rgba(0,0,0,0.45);
+  padding:0; min-width:210px; max-width:270px;
+  pointer-events:none;
+  opacity:0; transform:translateY(4px) scale(0.97);
+  transition:opacity 0.15s ease, transform 0.15s ease;
+}
+#cal-hover-popup.visible {
+  opacity:1; transform:translateY(0) scale(1);
+}
+.chp-header {
+  display:flex; align-items:center; gap:8px;
+  padding:10px 13px 8px; border-bottom:1px solid var(--border);
+}
+.chp-type-badge {
+  font-size:9px; font-weight:700; letter-spacing:.5px;
+  padding:2px 7px; border-radius:10px; flex-shrink:0;
+  text-transform:uppercase;
+}
+.chp-type-todo  { background:var(--accent-dim); color:var(--accent2); }
+.chp-type-event { background:rgba(245,158,11,0.15); color:#f59e0b; }
+.chp-type-income  { background:rgba(34,197,94,0.15); color:#4ade80; }
+.chp-type-expense { background:rgba(239,68,68,0.15); color:#f87171; }
+.chp-title {
+  font-size:13px; font-weight:600; color:var(--text);
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; flex:1;
+}
+.chp-body { padding:9px 13px; display:flex; flex-direction:column; gap:5px; }
+.chp-row {
+  display:flex; align-items:flex-start; gap:7px;
+  font-size:11px; color:var(--text2); line-height:1.5;
+}
+.chp-row-icon { flex-shrink:0; font-size:11px; margin-top:1px; }
+.chp-row-val  { flex:1; word-break:break-all; }
+.chp-row-val.done { text-decoration:line-through; color:var(--text3); }
+.chp-row-val.urgent { color:var(--red); font-weight:600; }
+.chp-row-val.soon   { color:var(--yellow); font-weight:600; }
+.chp-cat-dot {
+  display:inline-block; width:8px; height:8px;
+  border-radius:50%; margin-right:5px; flex-shrink:0;
+}
+.chp-amount {
+  font-family:'Space Mono',monospace; font-size:14px; font-weight:700;
+  padding:2px 0 0;
+}
+.chp-amount.income  { color:#4ade80; }
+.chp-amount.expense { color:#f87171; }
+.chp-memo { color:var(--text3); font-style:italic; }
+
 /* Mobile sidebar */
 #sidebar-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:50; }
 #sidebar-overlay.open { display:block; }
@@ -1187,6 +1239,7 @@ body { font-family:var(--font-main,'Noto Sans KR',sans-serif); background:var(--
 </div>
 
 <div id="toast"></div>
+<div id="cal-hover-popup"></div>
 
 <script>
 const SUPABASE_URL = 'https://koabxnqimggnofzfatsc.supabase.co';
@@ -1997,6 +2050,110 @@ function toggleCalLayer(type) {
   renderCalView();
 }
 
+// ── 달력 호버 팝업 ──
+let _hpTimer = null;
+const _popup = () => document.getElementById('cal-hover-popup');
+
+function showCalPopup(e, html) {
+  const p = _popup();
+  p.innerHTML = html;
+  p.classList.add('visible');
+  posCalPopup(e);
+}
+
+function posCalPopup(e) {
+  const p = _popup();
+  const pw = p.offsetWidth || 230;
+  const ph = p.offsetHeight || 120;
+  const margin = 10;
+  let x = e.clientX + 14;
+  let y = e.clientY + 14;
+  if(x + pw > window.innerWidth - margin)  x = e.clientX - pw - 10;
+  if(y + ph > window.innerHeight - margin) y = e.clientY - ph - 10;
+  if(x < margin) x = margin;
+  if(y < margin) y = margin;
+  p.style.left = x + 'px';
+  p.style.top  = y + 'px';
+}
+
+function hideCalPopup() {
+  _popup().classList.remove('visible');
+}
+
+function calPopupTodo(e, t) {
+  clearTimeout(_hpTimer);
+  _hpTimer = setTimeout(() => {
+    const cat = gc(t.cat_id);
+    const dl = dlStatus(t.deadline);
+    const timeFmt = (s) => {
+      if(!s) return '';
+      const [h, m] = s.split(':').map(Number);
+      return `${h<12?'오전':'오후'} ${h%12||12}:${String(m).padStart(2,'0')}`;
+    };
+    let rows = '';
+    if(cat) rows += `<div class="chp-row"><span class="chp-row-icon">🏷</span><span class="chp-row-val"><span class="chp-cat-dot" style="background:${cat.color}"></span>${esc(cat.name)}</span></div>`;
+    if(t.time) rows += `<div class="chp-row"><span class="chp-row-icon">⏰</span><span class="chp-row-val">${timeFmt(t.time)}</span></div>`;
+    if(dl) rows += `<div class="chp-row"><span class="chp-row-icon">📅</span><span class="chp-row-val ${dl.cls}">${dl.label}</span></div>`;
+    if(t.body) rows += `<div class="chp-row"><span class="chp-row-icon">📝</span><span class="chp-row-val">${esc(t.body)}</span></div>`;
+    if(t.done) rows += `<div class="chp-row"><span class="chp-row-icon">✅</span><span class="chp-row-val" style="color:var(--green)">완료됨</span></div>`;
+    if(!rows) rows = `<div class="chp-row"><span class="chp-row-val" style="color:var(--text3)">추가 정보 없음</span></div>`;
+    showCalPopup(e, `
+      <div class="chp-header">
+        <span class="chp-type-badge chp-type-todo">할 일</span>
+        <span class="chp-title">${esc(t.title)}</span>
+      </div>
+      <div class="chp-body">${rows}</div>`);
+  }, 250);
+}
+
+function calPopupEvent(e, ev) {
+  clearTimeout(_hpTimer);
+  _hpTimer = setTimeout(() => {
+    const cat = evCats.find(c=>c.id===ev.cat_id);
+    const isSingle = ev.start_date === ev.end_date;
+    const dateStr = isSingle ? ev.start_date : `${ev.start_date} ~ ${ev.end_date}`;
+    let rows = '';
+    if(cat) rows += `<div class="chp-row"><span class="chp-row-icon">🏷</span><span class="chp-row-val"><span class="chp-cat-dot" style="background:${cat.color}"></span>${esc(cat.name)}</span></div>`;
+    rows += `<div class="chp-row"><span class="chp-row-icon">📅</span><span class="chp-row-val">${dateStr}</span></div>`;
+    if(ev.memo) rows += `<div class="chp-row"><span class="chp-row-icon">📝</span><span class="chp-row-val">${esc(ev.memo)}</span></div>`;
+    showCalPopup(e, `
+      <div class="chp-header">
+        <span class="chp-type-badge chp-type-event">일정</span>
+        <span class="chp-title">${esc(ev.title)}</span>
+      </div>
+      <div class="chp-body">${rows}</div>`);
+  }, 250);
+}
+
+function calPopupTx(e, t) {
+  clearTimeout(_hpTimer);
+  _hpTimer = setTimeout(() => {
+    const isInc = t.type === 'income';
+    const cats = isInc ? txIncomeCats : txExpenseCats;
+    const cat = cats.find(c=>c.id===t.cat_id);
+    let rows = '';
+    rows += `<div class="chp-row"><span class="chp-row-icon">${isInc?'💰':'💸'}</span><span class="chp-amount ${t.type}">${fmtAmt(t.amount)}</span></div>`;
+    if(cat) rows += `<div class="chp-row"><span class="chp-row-icon">🏷</span><span class="chp-row-val"><span class="chp-cat-dot" style="background:${cat.color}"></span>${esc(cat.name)}</span></div>`;
+    if(t.memo) rows += `<div class="chp-row"><span class="chp-row-icon">📝</span><span class="chp-row-val chp-memo">${esc(t.memo)}</span></div>`;
+    showCalPopup(e, `
+      <div class="chp-header">
+        <span class="chp-type-badge chp-type-${t.type}">${isInc?'수입':'지출'}</span>
+        <span class="chp-title">${esc(t.title)}</span>
+      </div>
+      <div class="chp-body">${rows}</div>`);
+  }, 250);
+}
+
+function cancelCalPopup() {
+  clearTimeout(_hpTimer);
+  hideCalPopup();
+}
+
+document.addEventListener('mousemove', (e) => {
+  const p = _popup();
+  if(p.classList.contains('visible')) posCalPopup(e);
+});
+
 async function toggleCalTodoDone(t, dstr, chkEl, chipEl) {
   t.done = !t.done;
   // UI 즉시 반영
@@ -2066,6 +2223,8 @@ async function renderCalView() {
         chip.className=`cal-chip-event ${cls}`;
         chip.style.background=color;
         chip.textContent=isStart||isSingle?ev.title:'　';
+        chip.addEventListener('mouseenter', e => calPopupEvent(e, ev));
+        chip.addEventListener('mouseleave', cancelCalPopup);
         wrap.appendChild(chip); itemCount++;
       });
     }
@@ -2096,6 +2255,8 @@ async function renderCalView() {
         const txt=document.createElement('span'); txt.className='cal-chip-text';
         txt.textContent=t.time?`${t.time.slice(0,5)} ${t.title}`:t.title;
         chip.appendChild(txt);
+        chip.addEventListener('mouseenter', e => calPopupTodo(e, t));
+        chip.addEventListener('mouseleave', cancelCalPopup);
         wrap.appendChild(chip); itemCount++;
       });
     }
@@ -2105,7 +2266,10 @@ async function renderCalView() {
       incList.forEach(t=>{
         if(itemCount>=maxItems) return;
         const chip=document.createElement('div'); chip.className='cal-chip income';
-        chip.textContent=`💰 ${fmtAmt(t.amount)}`; wrap.appendChild(chip); itemCount++;
+        chip.textContent=`💰 ${fmtAmt(t.amount)}`;
+        chip.addEventListener('mouseenter', e => calPopupTx(e, t));
+        chip.addEventListener('mouseleave', cancelCalPopup);
+        wrap.appendChild(chip); itemCount++;
       });
     }
     if(calLayers.expense){
@@ -2114,7 +2278,10 @@ async function renderCalView() {
       expList.forEach(t=>{
         if(itemCount>=maxItems) return;
         const chip=document.createElement('div'); chip.className='cal-chip expense';
-        chip.textContent=`💸 ${fmtAmt(t.amount)}`; wrap.appendChild(chip); itemCount++;
+        chip.textContent=`💸 ${fmtAmt(t.amount)}`;
+        chip.addEventListener('mouseenter', e => calPopupTx(e, t));
+        chip.addEventListener('mouseleave', cancelCalPopup);
+        wrap.appendChild(chip); itemCount++;
       });
     }
     if(totalItems>maxItems){
