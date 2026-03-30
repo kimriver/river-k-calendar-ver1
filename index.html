@@ -464,8 +464,8 @@ body { font-family:var(--font-main,'Noto Sans KR',sans-serif); background:var(--
 #ev-cat-add-row:hover { border-color:var(--accent); color:var(--accent2); }
 #view-cal { overflow-y: auto; }
 #cal-view { padding:16px 22px 20px; display:flex; flex-direction:column; min-height:100%; }
-#cal-header { display:flex; align-items:center; gap:12px; margin-bottom:8px; flex-shrink:0; }
-#cal-toggle-bar { display:flex; gap:6px; margin-bottom:10px; flex-shrink:0; flex-wrap:wrap; }
+#cal-header { display:flex; align-items:center; gap:12px; margin-bottom:8px; flex-shrink:0; flex-wrap:wrap; }
+#cal-toggle-bar { display:flex; gap:6px; flex-shrink:0; flex-wrap:wrap; margin-bottom:0; margin-left:auto; }
 .cal-toggle-btn { padding:4px 12px; border-radius:20px; border:1px solid var(--border); background:var(--bg3); color:var(--text3); font-family:'Noto Sans KR',sans-serif; font-size:12px; cursor:pointer; transition:all 0.15s; }
 .cal-toggle-btn.active { color:#fff; border-color:transparent; }
 #toggle-todo.active { background:var(--accent); }
@@ -481,7 +481,7 @@ body { font-family:var(--font-main,'Noto Sans KR',sans-serif); background:var(--
 .cal-dow.sunday { color:rgba(255,100,100,0.7); }
 .cal-dow.saturday { color:rgba(100,150,255,0.7); }
 #cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:0; }
-.cal-cell { background:var(--bg2); border:0; border-right:1px solid var(--border); border-bottom:1px solid var(--border); border-radius:0; padding:6px; cursor:pointer; transition:all 0.15s; overflow:hidden; display:flex; flex-direction:column; min-height:80px; }
+.cal-cell { background:var(--bg2); border:0; border-right:1px solid var(--border); border-bottom:1px solid var(--border); border-radius:0; padding:6px; cursor:pointer; transition:all 0.15s; overflow:hidden; display:flex; flex-direction:column; height:110px; }
 .cal-cell:nth-child(7n) { border-right:0; }
 #cal-grid-wrap { border-left:1px solid var(--border); border-right:1px solid var(--border); overflow:hidden; }
 .cal-cell:hover { background:var(--bg3); }
@@ -871,15 +871,15 @@ body { font-family:var(--font-main,'Noto Sans KR',sans-serif); background:var(--
       <div class="view" id="view-cal">
         <div id="cal-view">
           <div id="cal-header">
-            <button class="cal-nav" id="cal-prev">‹</button>
+            <button class="cal-nav" id="cal-prev">&#8249;</button>
             <div id="cal-month-label"></div>
-            <button class="cal-nav" id="cal-next">›</button>
-          </div>
-          <div id="cal-toggle-bar">
-            <button class="cal-toggle-btn active" id="toggle-todo" onclick="toggleCalLayer('todo')">📋 할 일</button>
-            <button class="cal-toggle-btn active" id="toggle-event" onclick="toggleCalLayer('event')">🗓 일정</button>
-            <button class="cal-toggle-btn active" id="toggle-income" onclick="toggleCalLayer('income')">💰 수입</button>
-            <button class="cal-toggle-btn active" id="toggle-expense" onclick="toggleCalLayer('expense')">💸 지출</button>
+            <button class="cal-nav" id="cal-next">&#8250;</button>
+            <div id="cal-toggle-bar">
+              <button class="cal-toggle-btn active" id="toggle-todo" onclick="toggleCalLayer('todo')">&#128203; 할 일</button>
+              <button class="cal-toggle-btn active" id="toggle-event" onclick="toggleCalLayer('event')">&#128197; 일정</button>
+              <button class="cal-toggle-btn active" id="toggle-income" onclick="toggleCalLayer('income')">&#128176; 수입</button>
+              <button class="cal-toggle-btn active" id="toggle-expense" onclick="toggleCalLayer('expense')">&#128184; 지출</button>
+            </div>
           </div>
           <div id="cal-grid-wrap">
             <div id="cal-dow-row">
