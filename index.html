@@ -464,8 +464,8 @@ body { font-family:var(--font-main,'Noto Sans KR',sans-serif); background:var(--
 .cal-chip-event.ev-single { border-radius:4px; }
 #ev-cat-add-row { display:flex; align-items:center; gap:8px; padding:10px 12px; border:1px dashed var(--border); border-radius:8px; color:var(--text3); cursor:pointer; font-size:13px; transition:all 0.15s; margin-top:8px; }
 #ev-cat-add-row:hover { border-color:var(--accent); color:var(--accent2); }
-#view-cal { overflow-y: auto; }
-#cal-view { padding:10px 16px 10px; display:flex; flex-direction:column; min-height:100%; }
+#view-cal { overflow:hidden; display:flex; flex-direction:column; }
+#cal-view { padding:10px 16px 10px; display:flex; flex-direction:column; flex:1; overflow:hidden; }
 #cal-header { display:flex; align-items:center; gap:12px; margin-bottom:8px; flex-shrink:0; flex-wrap:wrap; }
 #cal-toggle-bar { display:flex; gap:6px; flex-shrink:0; flex-wrap:wrap; margin-bottom:0; margin-left:auto; }
 .cal-toggle-btn { padding:4px 12px; border-radius:20px; border:1px solid var(--border); background:var(--bg3); color:var(--text3); font-family:'Noto Sans KR',sans-serif; font-size:12px; cursor:pointer; transition:all 0.15s; }
@@ -477,15 +477,13 @@ body { font-family:var(--font-main,'Noto Sans KR',sans-serif); background:var(--
 #cal-month-label { font-family:'Space Mono',monospace; font-size:18px; font-weight:700; color:var(--text); }
 .cal-nav { background:var(--bg3); border:1px solid var(--border); color:var(--text2); width:32px; height:32px; border-radius:7px; cursor:pointer; font-size:15px; transition:all 0.15s; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .cal-nav:hover { border-color:var(--accent); color:var(--accent2); }
-#cal-grid-wrap { display:flex; flex-direction:column; }
-#cal-dow-row { display:grid; grid-template-columns:repeat(7,1fr); gap:0; margin-bottom:0; border-bottom:1px solid var(--border); }
+#cal-grid-wrap { display:flex; flex-direction:column; flex:1; overflow:hidden; border-left:1px solid var(--border); border-right:1px solid var(--border); }
+#cal-dow-row { display:grid; grid-template-columns:repeat(7,1fr); gap:0; margin-bottom:0; border-bottom:1px solid var(--border); flex-shrink:0; }
 .cal-dow { text-align:center; font-family:'Space Mono',monospace; font-size:9px; color:var(--text3); padding:5px 0; }
 .cal-dow.sunday { color:rgba(255,100,100,0.7); }
 .cal-dow.saturday { color:rgba(100,150,255,0.7); }
-#cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:0; }
-.cal-cell { background:var(--bg2); border:0; border-right:1px solid var(--border); border-bottom:1px solid var(--border); border-radius:0; padding:6px; cursor:pointer; transition:all 0.15s; overflow:hidden; display:flex; flex-direction:column; height:130px; }
-.cal-cell:nth-child(7n) { border-right:0; }
-#cal-grid-wrap { border-left:1px solid var(--border); border-right:1px solid var(--border); overflow:hidden; }
+#cal-grid { display:grid; grid-template-columns:repeat(7,1fr); gap:0; flex:1; grid-auto-rows:1fr; }
+.cal-cell { background:var(--bg2); border:0; border-right:1px solid var(--border); border-bottom:1px solid var(--border); border-radius:0; padding:6px; cursor:pointer; transition:all 0.15s; overflow:hidden; display:flex; flex-direction:column; }
 .cal-cell:hover { background:var(--bg3); }
 .cal-cell.today { background:var(--bg2); }
 .cal-cell.today .cal-num { color:#fff; font-weight:700; background:var(--accent); border-radius:50%; width:20px; height:20px; display:flex; align-items:center; justify-content:center; padding:0; }
@@ -2285,9 +2283,24 @@ async function toggleCalTodoDone(t, dstr, chkEl, chipEl) {
   toast(t.done ? '✅ 완료!' : '↩️ 완료 취소');
 }
 
+function fitCalGrid() {
+  const wrap = document.getElementById('cal-grid-wrap');
+  const view = document.getElementById('cal-view');
+  const header = document.getElementById('cal-header');
+  if (!wrap || !view || !header) return;
+  const available = view.clientHeight - header.offsetHeight - 20; // 20 = padding
+  const dowRow = document.getElementById('cal-dow-row');
+  const dowH = dowRow ? dowRow.offsetHeight : 22;
+  wrap.style.height = available + 'px';
+  const grid = document.getElementById('cal-grid');
+  if (grid) grid.style.height = (available - dowH) + 'px';
+}
+window.addEventListener('resize', fitCalGrid);
+
 async function renderCalView() {
   const y=calViewDate.getFullYear(),m=calViewDate.getMonth();
   document.getElementById('cal-month-label').textContent=`${y}년 ${m+1}월`;
+  fitCalGrid();
 
   const [todoData, txData, evData] = await Promise.all([
     calLayers.todo ? loadMonth() : Promise.resolve({}),
