@@ -474,7 +474,7 @@ body { font-family:var(--font-main,'Noto Sans KR',sans-serif); background:var(--
 #toggle-event.active { background:#f59e0b; }
 #toggle-income.active { background:#22c55e; }
 #toggle-expense.active { background:#ef4444; }
-#cal-month-label { font-family:'Space Mono',monospace; font-size:18px; font-weight:700; color:var(--text); flex:1; }
+#cal-month-label { font-family:'Space Mono',monospace; font-size:18px; font-weight:700; color:var(--text); }
 .cal-nav { background:var(--bg3); border:1px solid var(--border); color:var(--text2); width:32px; height:32px; border-radius:7px; cursor:pointer; font-size:15px; transition:all 0.15s; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .cal-nav:hover { border-color:var(--accent); color:var(--accent2); }
 #cal-grid-wrap { display:flex; flex-direction:column; }
@@ -880,9 +880,11 @@ body { font-family:var(--font-main,'Noto Sans KR',sans-serif); background:var(--
       <div class="view" id="view-cal">
         <div id="cal-view">
           <div id="cal-header">
-            <button class="cal-nav" id="cal-prev">&#8249;</button>
-            <div id="cal-month-label"></div>
-            <button class="cal-nav" id="cal-next">&#8250;</button>
+            <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+              <button class="cal-nav" id="cal-prev">&#8249;</button>
+              <div id="cal-month-label"></div>
+              <button class="cal-nav" id="cal-next">&#8250;</button>
+            </div>
           </div>
           <div id="cal-grid-wrap">
             <div id="cal-dow-row">
