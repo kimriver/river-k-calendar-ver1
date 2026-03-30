@@ -2284,11 +2284,13 @@ async function toggleCalTodoDone(t, dstr, chkEl, chipEl) {
 }
 
 function fitCalGrid() {
+  const viewCal = document.getElementById('view-cal');
+  if (!viewCal || !viewCal.classList.contains('active')) return;
   const wrap = document.getElementById('cal-grid-wrap');
   const view = document.getElementById('cal-view');
   const header = document.getElementById('cal-header');
   if (!wrap || !view || !header) return;
-  const available = view.clientHeight - header.offsetHeight - 20; // 20 = padding
+  const available = view.clientHeight - header.offsetHeight - 20;
   const dowRow = document.getElementById('cal-dow-row');
   const dowH = dowRow ? dowRow.offsetHeight : 22;
   wrap.style.height = available + 'px';
@@ -2300,7 +2302,7 @@ window.addEventListener('resize', fitCalGrid);
 async function renderCalView() {
   const y=calViewDate.getFullYear(),m=calViewDate.getMonth();
   document.getElementById('cal-month-label').textContent=`${y}년 ${m+1}월`;
-  fitCalGrid();
+  requestAnimationFrame(fitCalGrid);
 
   const [todoData, txData, evData] = await Promise.all([
     calLayers.todo ? loadMonth() : Promise.resolve({}),
@@ -2562,7 +2564,9 @@ function switchView(v) {
     document.getElementById('view-cal').classList.add('active');
     document.getElementById('hnav-cal').classList.add('active');
     document.getElementById('snav-cal').classList.add('active');
-    calViewDate=new Date(currentDate); renderCalView();
+    calViewDate=new Date(currentDate);
+    renderCalView();
+    requestAnimationFrame(fitCalGrid);
   } else if(v==='event'){
     document.getElementById('view-event').classList.add('active');
     document.getElementById('hnav-event').classList.add('active');
